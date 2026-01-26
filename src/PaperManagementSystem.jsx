@@ -43,31 +43,6 @@ export default function PaperManagementSystem() {
                 p.correspondingAuthor === authorName ? 'corresponding' : 'second'
     }));
   };
-  useEffect(() => {
-  try {
-    const raw = localStorage.getItem("paper_ui_state_v1");
-    if (raw) {
-      const s = JSON.parse(raw);
-      if (s.papers) setPapers(s.papers);
-      if (s.authors) setAuthors(s.authors);
-      if (s.todos) setTodos(s.todos);
-      if (s.history) setHistory(s.history);
-    }
-  } catch (e) {
-    console.warn("Failed to load local state", e);
-  }
-}, []);
-
-useEffect(() => {
-  try {
-    localStorage.setItem(
-      "paper_ui_state_v1",
-      JSON.stringify({ papers, authors, todos, history })
-    );
-  } catch (e) {
-    console.warn("Failed to save local state", e);
-  }
-}, [papers, authors, todos, history]);
 
   const statusOpts = [
     { v: 'preparing', l: '准备中', c: 'bg-gray-100 text-gray-800' },

@@ -1,5 +1,7 @@
-import PaperManagementSystem from './PaperManagementSystem';
+import PaperManagementSystem from './PaperManagementSystem.ui';
 
-export default function App() {
+function App() {
   return <PaperManagementSystem />;
 }
+
+export default App;
