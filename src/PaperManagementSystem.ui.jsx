@@ -7,7 +7,7 @@ import Login from './Login'; // 导入登录组件
 // Supabase 配置 - 🔴 请替换为你的配置
 // ==========================================
 const SUPABASE_URL = 'https://kulydhkpuodsboiufpbt.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_M79M7_wnIXW_6gEdZNYb6g_prPqS2rg';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1bHlkaGtwdW9kc2JvaXVmcGJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0MDY3NzgsImV4cCI6MjA4NDk4Mjc3OH0.xhFglujFGxBSEe--rUYcsYE9sw6Lzi6FVJ9hpbcDPl0';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
