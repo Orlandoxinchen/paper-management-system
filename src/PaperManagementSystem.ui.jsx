@@ -6,8 +6,8 @@ import Login from './Login'; // 导入登录组件
 // ==========================================
 // Supabase 配置 - 🔴 请替换为你的配置
 // ==========================================
-const SUPABASE_URL = 'https://kulydhkpuodsboiufpbt.supabase.co'; // 例如: https://xxxxx.supabase.co
-const SUPABASE_ANON_KEY = 'process.env.SUPABASE_KEY';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
