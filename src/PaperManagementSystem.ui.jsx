@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit2, Trash2, X, Save, FileText, Users, Search, Download, Upload, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, FileText, Users, Search, Download, Upload, Clock, CheckCircle, AlertCircle, BookOpen, BarChart3 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
-import Login from './Login'; // 导入登录组件
+import Login from './Login';
+import LiteratureSearch from './LiteratureSearch';
+import EmpiricalGenerator from '../EmpiricalGenerator.jsx';
 
-// ==========================================
-// Supabase 配置 - 🔴 请替换为你的配置
-// ==========================================
 const SUPABASE_URL = 'https://kulydhkpuodsboiufpbt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1bHlkaGtwdW9kc2JvaXVmcGJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0MDY3NzgsImV4cCI6MjA4NDk4Mjc3OH0.xhFglujFGxBSEe--rUYcsYE9sw6Lzi6FVJ9hpbcDPl0';
 
@@ -31,6 +30,8 @@ export default function PaperManagementSystem() {
   const [notification, setNotification] = useState(null);
   const [customTodoForm, setCustomTodoForm] = useState({ name: '', note: '' });
   const [loading, setLoading] = useState(false);
+  const [showLiteratureTool, setShowLiteratureTool] = useState(false);
+  const [showEmpiricalTool, setShowEmpiricalTool] = useState(false);
   
   const [paperForm, setPaperForm] = useState({
     titleCN: '', titleEN: '', status: 'preparing', firstAuthor: '', correspondingAuthor: '', 
@@ -74,9 +75,6 @@ export default function PaperManagementSystem() {
   const calcTotal = (amts) => amts ? amts.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0) : 0;
   const getFields = () => [...new Set(papers.filter(p => p.titleCN).map(p => p.titleCN))];
 
-  // ==========================================
-  // 检查登录状态
-  // ==========================================
   useEffect(() => {
     const savedUser = localStorage.getItem('paper_system_user');
     if (savedUser) {
@@ -107,18 +105,10 @@ export default function PaperManagementSystem() {
     notify('已退出登录');
   };
 
-  // ==========================================
-  // 数据加载函数（加载所有数据，不过滤用户）
-  // ==========================================
   const loadAllData = async () => {
     setLoading(true);
     try {
-      await Promise.all([
-        loadPapers(),
-        loadAuthors(),
-        loadTodos(),
-        loadHistory()
-      ]);
+      await Promise.all([loadPapers(), loadAuthors(), loadTodos(), loadHistory()]);
     } catch (error) {
       console.error('加载数据失败:', error);
       notify('加载数据失败', 'error');
@@ -128,125 +118,68 @@ export default function PaperManagementSystem() {
   };
 
   const loadPapers = async () => {
-    const { data, error } = await supabase
-      .from('papers')
-      .select('*')
-      .order('serial_number', { ascending: true });
-    
+    const { data, error } = await supabase.from('papers').select('*').order('serial_number', { ascending: true });
     if (error) {
       console.error('加载论文失败:', error);
       return;
     }
-    
     const formattedPapers = data.map(p => ({
-      id: p.id,
-      serialNumber: p.serial_number,
-      titleCN: p.title_cn,
-      titleEN: p.title_en,
-      status: p.status,
-      firstAuthor: p.first_author,
-      correspondingAuthor: p.corresponding_author,
-      secondAuthor: p.second_author,
-      journal: p.journal,
-      submissionDate: p.submission_date,
-      submissionLink: p.submission_link,
-      submissionEmail: p.submission_email,
-      submissionPassword: p.submission_password,
-      contactEmail: p.contact_email,
-      contactPassword: p.contact_password,
-      statusDate: p.status_date,
-      notes: p.notes,
-      files: {
-        word: p.file_word,
-        pdf: p.file_pdf,
-        excel: p.file_excel
-      }
+      id: p.id, serialNumber: p.serial_number, titleCN: p.title_cn, titleEN: p.title_en,
+      status: p.status, firstAuthor: p.first_author, correspondingAuthor: p.corresponding_author,
+      secondAuthor: p.second_author, journal: p.journal, submissionDate: p.submission_date,
+      submissionLink: p.submission_link, submissionEmail: p.submission_email,
+      submissionPassword: p.submission_password, contactEmail: p.contact_email,
+      contactPassword: p.contact_password, statusDate: p.status_date, notes: p.notes,
+      files: { word: p.file_word, pdf: p.file_pdf, excel: p.file_excel }
     }));
-    
     setPapers(formattedPapers);
   };
 
   const loadAuthors = async () => {
-    const { data, error } = await supabase
-      .from('authors')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
+    const { data, error } = await supabase.from('authors').select('*').order('created_at', { ascending: false });
     if (error) {
       console.error('加载作者失败:', error);
       return;
     }
-    
     const formattedAuthors = data.map(a => ({
-      id: a.id,
-      name: a.name,
-      wechat: a.wechat,
-      phone: a.phone,
-      email: a.email,
-      contractDate: a.contract_date,
-      researchField: a.research_field || [],
-      cooperationAmounts: a.cooperation_amounts || [],
-      affiliations: a.affiliations || [''],
+      id: a.id, name: a.name, wechat: a.wechat, phone: a.phone, email: a.email,
+      contractDate: a.contract_date, researchField: a.research_field || [],
+      cooperationAmounts: a.cooperation_amounts || [], affiliations: a.affiliations || [''],
       authorPositions: a.author_positions || {}
     }));
-    
     setAuthors(formattedAuthors);
   };
 
   const loadTodos = async () => {
-    const { data, error } = await supabase
-      .from('todos')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
+    const { data, error } = await supabase.from('todos').select('*').order('created_at', { ascending: false });
     if (error) {
       console.error('加载待办失败:', error);
       return;
     }
-    
     const formattedTodos = data.map(t => ({
-      id: t.id,
-      paperId: t.paper_id,
-      type: t.type,
-      title: t.title,
-      status: t.status,
-      note: t.note,
-      days: t.days,
-      lastRemindDate: t.last_remind_date,
-      handled: t.handled
+      id: t.id, paperId: t.paper_id, type: t.type, title: t.title, status: t.status,
+      note: t.note, days: t.days, lastRemindDate: t.last_remind_date, handled: t.handled
     }));
-    
     setTodos(formattedTodos);
   };
 
   const loadHistory = async () => {
-    const { data, error } = await supabase
-      .from('history')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(100);
-    
+    const { data, error } = await supabase.from('history').select('*').order('timestamp', { ascending: false }).limit(100);
     if (error) {
       console.error('加载历史失败:', error);
       return;
     }
-    
     setHistory(data);
   };
 
-  // ==========================================
-  // 待办事项生成
-  // ==========================================
   useEffect(() => {
     const generateTodos = () => {
       const newTodos = [];
       const today = new Date().toDateString();
-      
       papers.forEach(paper => {
         const todoId = `paper-${paper.id}`;
         const existingTodo = todos.find(t => t.id === todoId);
         const days = paper.statusDate ? calcDays(paper.statusDate) : 0;
-        
         if (paper.status === 'revision_pending' && paper.statusDate) {
           if (!existingTodo || !existingTodo.handled) {
             newTodos.push({
@@ -256,11 +189,9 @@ export default function PaperManagementSystem() {
             });
           }
         }
-        
         if ((paper.status === 'under_review' || paper.status === 'final_review') && paper.statusDate) {
           const lastRemind = existingTodo?.lastRemindDate ? new Date(existingTodo.lastRemindDate) : null;
           const daysSinceRemind = lastRemind ? Math.floor((new Date() - lastRemind) / 86400000) : 999;
-          
           if (!existingTodo || daysSinceRemind >= 2) {
             newTodos.push({
               id: todoId, paperId: paper.id,
@@ -273,10 +204,8 @@ export default function PaperManagementSystem() {
             newTodos.push(existingTodo);
           }
         }
-        
         if (paper.status === 'preparing' && paper.statusDate) {
           const lastRemind = existingTodo?.lastRemindDate ? new Date(existingTodo.lastRemindDate).toDateString() : null;
-          
           if (!existingTodo || lastRemind !== today) {
             newTodos.push({
               id: todoId, paperId: paper.id, type: 'preparing',
@@ -288,10 +217,8 @@ export default function PaperManagementSystem() {
           }
         }
       });
-      
       syncTodosToDatabase(newTodos);
     };
-    
     if (papers.length > 0) {
       generateTodos();
     }
@@ -299,40 +226,24 @@ export default function PaperManagementSystem() {
 
   const syncTodosToDatabase = async (newTodos) => {
     for (const todo of newTodos) {
-      const { data: existing } = await supabase
-        .from('todos')
-        .select('id')
-        .eq('id', todo.id)
-        .single();
-      
+      const { data: existing } = await supabase.from('todos').select('id').eq('id', todo.id).single();
       if (!existing) {
         await supabase.from('todos').insert({
-          id: todo.id,
-          paper_id: todo.paperId,
-          type: todo.type,
-          title: todo.title,
-          status: todo.status,
-          note: todo.note || '',
-          days: todo.days,
-          last_remind_date: todo.lastRemindDate,
-          handled: todo.handled
+          id: todo.id, paper_id: todo.paperId, type: todo.type, title: todo.title,
+          status: todo.status, note: todo.note || '', days: todo.days,
+          last_remind_date: todo.lastRemindDate, handled: todo.handled
         });
       } else {
-        await supabase.from('todos')
-          .update({
-            days: todo.days,
-            last_remind_date: todo.lastRemindDate
-          })
-          .eq('id', todo.id);
+        await supabase.from('todos').update({
+          days: todo.days, last_remind_date: todo.lastRemindDate
+        }).eq('id', todo.id);
       }
     }
-    
     setTodos(newTodos);
   };
 
   const handleTodo = async (todoId, action) => {
     const todo = todos.find(t => t.id === todoId);
-    
     if (action === 'done') {
       await supabase.from('todos').update({ handled: true }).eq('id', todoId);
       setTodos(todos.map(t => t.id === todoId ? {...t, handled: true} : t));
@@ -347,8 +258,7 @@ export default function PaperManagementSystem() {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       await supabase.from('todos').update({ 
-        last_remind_date: tomorrow.toISOString().split('T')[0],
-        handled: false 
+        last_remind_date: tomorrow.toISOString().split('T')[0], handled: false 
       }).eq('id', todoId);
       setTodos(todos.map(t => t.id === todoId ? {...t, lastRemindDate: tomorrow.toDateString(), handled: false} : t));
       notify('已设置明天提醒');
@@ -362,15 +272,8 @@ export default function PaperManagementSystem() {
   };
 
   const addHistory = async (action, target, details) => {
-    const newRecord = {
-      action,
-      target,
-      details,
-      timestamp: new Date().toISOString()
-    };
-    
+    const newRecord = { action, target, details, timestamp: new Date().toISOString() };
     const { data, error } = await supabase.from('history').insert(newRecord).select().single();
-    
     if (!error && data) {
       setHistory([data, ...history]);
     }
@@ -411,7 +314,6 @@ export default function PaperManagementSystem() {
       if (filterDays !== 'all' && !a.contractDate) return false;
       return true;
     });
-    
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(a => 
@@ -436,53 +338,36 @@ export default function PaperManagementSystem() {
   const handleFileUpload = (e, fileType) => {
     const file = e.target.files[0];
     if (!file) return;
-    
     const validTypes = {
       word: ['.doc', '.docx', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
       pdf: ['.pdf', 'application/pdf'],
       excel: ['.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
     };
-    
     const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     const isValidType = validTypes[fileType].some(type => 
       type.startsWith('.') ? fileExtension === type : file.type === type
     );
-    
     if (!isValidType) {
       notify(`请上传正确的${fileType === 'word' ? 'Word' : fileType === 'pdf' ? 'PDF' : 'Excel'}文件`, 'error');
       return;
     }
-    
     if (file.size > 10 * 1024 * 1024) {
       notify('文件大小不能超过10MB', 'error');
       return;
     }
-    
     const reader = new FileReader();
     reader.onload = (event) => {
       const fileData = {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        data: event.target.result,
-        uploadDate: new Date().toISOString()
+        name: file.name, size: file.size, type: file.type,
+        data: event.target.result, uploadDate: new Date().toISOString()
       };
-      
       setPaperForm({
         ...paperForm,
-        files: {
-          ...paperForm.files,
-          [fileType]: fileData
-        }
+        files: { ...paperForm.files, [fileType]: fileData }
       });
-      
       notify(`${file.name} 上传成功`);
     };
-    
-    reader.onerror = () => {
-      notify('文件读取失败', 'error');
-    };
-    
+    reader.onerror = () => { notify('文件读取失败', 'error'); };
     reader.readAsDataURL(file);
     e.target.value = '';
   };
@@ -500,10 +385,7 @@ export default function PaperManagementSystem() {
     if (window.confirm('确定要删除这个文件吗？')) {
       setPaperForm({
         ...paperForm,
-        files: {
-          ...paperForm.files,
-          [fileType]: null
-        }
+        files: { ...paperForm.files, [fileType]: null }
       });
       notify('文件已删除');
     }
@@ -514,94 +396,58 @@ export default function PaperManagementSystem() {
       notify('请填写题目', 'error');
       return;
     }
-    
     setLoading(true);
-    
     try {
       const allAuthorNames = [paperForm.firstAuthor, paperForm.correspondingAuthor, paperForm.secondAuthor].filter(name => name && name.trim());
       const existingAuthorNames = authors.map(a => a.name);
       const newAuthors = [];
-      
       for (const name of allAuthorNames) {
         if (!existingAuthorNames.includes(name) && !newAuthors.find(a => a.name === name)) {
           const { data, error } = await supabase.from('authors').insert({
-            name: name,
-            research_field: [],
-            cooperation_amounts: [],
-            affiliations: ['']
+            name: name, research_field: [], cooperation_amounts: [], affiliations: ['']
           }).select().single();
-          
           if (!error && data) {
             newAuthors.push({
-              id: data.id,
-              name: data.name,
-              wechat: '',
-              phone: '',
-              email: '',
-              contractDate: '',
-              cooperationAmounts: [],
-              affiliations: [''],
-              researchField: [],
-              authorPositions: {}
+              id: data.id, name: data.name, wechat: '', phone: '', email: '',
+              contractDate: '', cooperationAmounts: [], affiliations: [''],
+              researchField: [], authorPositions: {}
             });
           }
         }
       }
-      
       if (newAuthors.length > 0) {
         setAuthors([...authors, ...newAuthors]);
         notify(`已自动添加 ${newAuthors.length} 位新作者`);
         newAuthors.forEach(a => addHistory('添加', '作者', `自动添加作者：${a.name}`));
       }
-      
       const paperData = {
-        serial_number: paperForm.serialNumber,
-        title_cn: paperForm.titleCN,
-        title_en: paperForm.titleEN,
-        status: paperForm.status,
-        first_author: paperForm.firstAuthor,
-        corresponding_author: paperForm.correspondingAuthor,
-        second_author: paperForm.secondAuthor,
-        journal: paperForm.journal,
-        submission_date: paperForm.submissionDate || null,
-        submission_link: paperForm.submissionLink,
-        submission_email: paperForm.submissionEmail,
-        submission_password: paperForm.submissionPassword,
-        contact_email: paperForm.contactEmail,
-        contact_password: paperForm.contactPassword,
-        status_date: paperForm.statusDate || null,
-        notes: paperForm.notes,
-        file_word: paperForm.files.word,
-        file_pdf: paperForm.files.pdf,
-        file_excel: paperForm.files.excel
+        serial_number: paperForm.serialNumber, title_cn: paperForm.titleCN, title_en: paperForm.titleEN,
+        status: paperForm.status, first_author: paperForm.firstAuthor,
+        corresponding_author: paperForm.correspondingAuthor, second_author: paperForm.secondAuthor,
+        journal: paperForm.journal, submission_date: paperForm.submissionDate || null,
+        submission_link: paperForm.submissionLink, submission_email: paperForm.submissionEmail,
+        submission_password: paperForm.submissionPassword, contact_email: paperForm.contactEmail,
+        contact_password: paperForm.contactPassword, status_date: paperForm.statusDate || null,
+        notes: paperForm.notes, file_word: paperForm.files.word,
+        file_pdf: paperForm.files.pdf, file_excel: paperForm.files.excel
       };
-      
       if (editItem) {
-        const { error } = await supabase
-          .from('papers')
-          .update(paperData)
-          .eq('id', editItem.id);
-        
+        const { error } = await supabase.from('papers').update(paperData).eq('id', editItem.id);
         if (error) throw error;
-        
         addHistory('编辑', '论文', `编辑论文：${paperForm.titleCN || paperForm.titleEN}`);
       } else {
         const maxSerial = papers.length > 0 ? Math.max(...papers.map(p => p.serialNumber || 0)) : 0;
         paperData.serial_number = maxSerial + 1;
-        
         const { error } = await supabase.from('papers').insert(paperData);
-        
         if (error) throw error;
-        
         addHistory('添加', '论文', `添加论文：${paperForm.titleCN || paperForm.titleEN}`);
       }
-      
       await loadPapers();
       notify('已保存');
       resetForm();
     } catch (error) {
       console.error('保存论文失败:', error);
-      notify('保存失败', 'error');
+      notify('保存失败: ' + (error.message || '未知错误'), 'error');
     } finally {
       setLoading(false);
     }
@@ -612,44 +458,29 @@ export default function PaperManagementSystem() {
       notify('请填写姓名', 'error');
       return;
     }
-    
     setLoading(true);
-    
     try {
       const authorData = {
-        name: authorForm.name,
-        wechat: authorForm.wechat,
-        phone: authorForm.phone,
-        email: authorForm.email,
-        contract_date: authorForm.contractDate || null,
-        research_field: authorForm.researchField,
-        cooperation_amounts: authorForm.cooperationAmounts,
+        name: authorForm.name, wechat: authorForm.wechat, phone: authorForm.phone,
+        email: authorForm.email, contract_date: authorForm.contractDate || null,
+        research_field: authorForm.researchField, cooperation_amounts: authorForm.cooperationAmounts,
         affiliations: authorForm.affiliations
       };
-      
       if (editItem) {
-        const { error } = await supabase
-          .from('authors')
-          .update(authorData)
-          .eq('id', editItem.id);
-        
+        const { error } = await supabase.from('authors').update(authorData).eq('id', editItem.id);
         if (error) throw error;
-        
         addHistory('编辑', '作者', `编辑作者：${authorForm.name}`);
       } else {
         const { error } = await supabase.from('authors').insert(authorData);
-        
         if (error) throw error;
-        
         addHistory('添加', '作者', `添加作者：${authorForm.name}`);
       }
-      
       await loadAuthors();
       notify('已保存');
       resetForm();
     } catch (error) {
       console.error('保存作者失败:', error);
-      notify('保存失败', 'error');
+      notify('保存失败: ' + (error.message || '未知错误'), 'error');
     } finally {
       setLoading(false);
     }
@@ -660,32 +491,17 @@ export default function PaperManagementSystem() {
       notify('请填写事项名称', 'error');
       return;
     }
-    
     const newTodo = {
-      id: `custom-${Date.now()}`,
-      paper_id: null,
-      type: 'custom',
-      title: customTodoForm.name,
-      status: '自定义事项',
-      note: customTodoForm.note,
-      days: 0,
-      last_remind_date: new Date().toISOString().split('T')[0],
-      handled: false
+      id: `custom-${Date.now()}`, paper_id: null, type: 'custom',
+      title: customTodoForm.name, status: '自定义事项', note: customTodoForm.note,
+      days: 0, last_remind_date: new Date().toISOString().split('T')[0], handled: false
     };
-    
     const { error } = await supabase.from('todos').insert(newTodo);
-    
     if (!error) {
       setTodos([...todos, {
-        id: newTodo.id,
-        paperId: null,
-        type: 'custom',
-        title: newTodo.title,
-        status: '自定义事项',
-        note: newTodo.note,
-        days: 0,
-        lastRemindDate: newTodo.last_remind_date,
-        handled: false
+        id: newTodo.id, paperId: null, type: 'custom', title: newTodo.title,
+        status: '自定义事项', note: newTodo.note, days: 0,
+        lastRemindDate: newTodo.last_remind_date, handled: false
       }]);
       addHistory('添加', '待办', `添加自定义事项：${customTodoForm.name}`);
       notify('事项已添加');
@@ -704,11 +520,9 @@ export default function PaperManagementSystem() {
       p.contactEmail || '', p.contactPassword || '',
       p.statusDate || '', p.notes || ''
     ]);
-    
     const paperCSV = [paperHeaders, ...paperRows].map(row => 
       row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
     ).join('\n');
-    
     const paperBlob = new Blob(['\ufeff' + paperCSV], { type: 'text/csv;charset=utf-8;' });
     const paperUrl = URL.createObjectURL(paperBlob);
     const paperLink = document.createElement('a');
@@ -723,11 +537,9 @@ export default function PaperManagementSystem() {
       a.contractDate || '', (a.researchField || []).join(';'),
       calcTotal(a.cooperationAmounts) || 0
     ]);
-    
     const authorCSV = [authorHeaders, ...authorRows].map(row => 
       row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
     ).join('\n');
-    
     const authorBlob = new Blob(['\ufeff' + authorCSV], { type: 'text/csv;charset=utf-8;' });
     const authorUrl = URL.createObjectURL(authorBlob);
     const authorLink = document.createElement('a');
@@ -735,18 +547,153 @@ export default function PaperManagementSystem() {
     authorLink.download = `作者列表_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
     authorLink.click();
     URL.revokeObjectURL(authorUrl);
-    
     notify('导出成功（已导出2个CSV文件）');
   };
 
-  const importData = (e) => {
-    notify('CSV导入功能开发中', 'error');
-    e.target.value = '';
+  const importData = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        let content = event.target.result;
+        if (content.charCodeAt(0) === 0xFEFF) {
+          content = content.substring(1);
+        }
+        if (file.name.endsWith('.json')) {
+          const data = JSON.parse(content);
+          let importedAuthors = 0;
+          let importedPapers = 0;
+          if (data.authors && data.authors.length > 0) {
+            for (const author of data.authors) {
+              const { error } = await supabase.from('authors').insert({
+                name: author.name || '', wechat: author.wechat || '', phone: author.phone || '',
+                email: author.email || '', contract_date: author.contractDate || null,
+                research_field: author.researchField || [], cooperation_amounts: author.cooperationAmounts || [],
+                affiliations: author.affiliations || ['']
+              });
+              if (!error) importedAuthors++;
+            }
+          }
+          if (data.papers && data.papers.length > 0) {
+            for (const paper of data.papers) {
+              const { error } = await supabase.from('papers').insert({
+                serial_number: paper.serialNumber || 0, title_cn: paper.titleCN || '',
+                title_en: paper.titleEN || '', status: paper.status || 'preparing',
+                first_author: paper.firstAuthor || '', corresponding_author: paper.correspondingAuthor || '',
+                second_author: paper.secondAuthor || '', journal: paper.journal || '',
+                submission_date: paper.submissionDate || null, submission_link: paper.submissionLink || '',
+                submission_email: paper.submissionEmail || '', submission_password: paper.submissionPassword || '',
+                contact_email: paper.contactEmail || '', contact_password: paper.contactPassword || '',
+                status_date: paper.statusDate || null, notes: paper.notes || '',
+                file_word: paper.files?.word || null, file_pdf: paper.files?.pdf || null,
+                file_excel: paper.files?.excel || null
+              });
+              if (!error) importedPapers++;
+            }
+          }
+          await loadAllData();
+          notify(`JSON导入成功：${importedPapers} 篇论文，${importedAuthors} 位作者`);
+        } else if (file.name.endsWith('.csv')) {
+          const lines = content.split('\n').filter(line => line.trim());
+          if (lines.length < 2) {
+            notify('CSV文件为空或格式错误', 'error');
+            setLoading(false);
+            e.target.value = '';
+            return;
+          }
+          const headerLine = lines[0].replace(/"/g, '').trim();
+          const headers = headerLine.split(',').map(h => h.trim());
+          const isPaperCSV = headers.some(h => h.includes('中文题目') || h.includes('英文题目') || h.includes('题目') || h === 'titleCN' || h === 'titleEN');
+          const isAuthorCSV = headers.some(h => h.includes('姓名') || h === 'name' || h === 'Name');
+          if (isPaperCSV) {
+            let imported = 0;
+            for (let i = 1; i < lines.length; i++) {
+              try {
+                const values = [];
+                let currentValue = '';
+                let inQuotes = false;
+                for (let char of lines[i]) {
+                  if (char === '"') {
+                    inQuotes = !inQuotes;
+                  } else if (char === ',' && !inQuotes) {
+                    values.push(currentValue.trim());
+                    currentValue = '';
+                  } else {
+                    currentValue += char;
+                  }
+                }
+                values.push(currentValue.trim());
+                if (values.length >= 2 && (values[1] || values[2])) {
+                  const { error } = await supabase.from('papers').insert({
+                    serial_number: parseInt(values[0]) || 0, title_cn: values[1] || '',
+                    title_en: values[2] || '', status: statusOpts.find(s => s.l === values[3])?.v || 'preparing',
+                    first_author: values[4] || '', corresponding_author: values[5] || '',
+                    second_author: values[6] || '', journal: values[7] || '',
+                    submission_date: values[8] || null, submission_link: values[9] || '',
+                    submission_email: values[10] || '', submission_password: values[11] || '',
+                    contact_email: values[12] || '', contact_password: values[13] || '',
+                    status_date: values[14] || null, notes: values[15] || ''
+                  });
+                  if (!error) imported++;
+                }
+              } catch (rowError) {
+                console.error(rowError);
+              }
+            }
+            await loadPapers();
+            notify(`成功导入 ${imported} 篇论文`);
+          } else if (isAuthorCSV) {
+            let imported = 0;
+            for (let i = 1; i < lines.length; i++) {
+              try {
+                const values = [];
+                let currentValue = '';
+                let inQuotes = false;
+                for (let char of lines[i]) {
+                  if (char === '"') {
+                    inQuotes = !inQuotes;
+                  } else if (char === ',' && !inQuotes) {
+                    values.push(currentValue.trim());
+                    currentValue = '';
+                  } else {
+                    currentValue += char;
+                  }
+                }
+                values.push(currentValue.trim());
+                if (values.length >= 1 && values[0]) {
+                  const { error } = await supabase.from('authors').insert({
+                    name: values[0] || '', wechat: values[1] || '', phone: values[2] || '',
+                    email: values[3] || '', contract_date: values[4] || null,
+                    research_field: values[5] ? values[5].split(';').filter(Boolean) : [],
+                    cooperation_amounts: [], affiliations: ['']
+                  });
+                  if (!error) imported++;
+                }
+              } catch (rowError) {
+                console.error(rowError);
+              }
+            }
+            await loadAuthors();
+            notify(`成功导入 ${imported} 位作者`);
+          }
+        }
+      } catch (err) {
+        notify('导入失败：' + (err.message || '未知错误'), 'error');
+      } finally {
+        setLoading(false);
+        e.target.value = '';
+      }
+    };
+    reader.onerror = () => {
+      notify('文件读取失败', 'error');
+      setLoading(false);
+      e.target.value = '';
+    };
+    reader.readAsText(file, 'UTF-8');
   };
 
-  // ==========================================
-  // 登录检查 - 如果未登录显示登录界面
-  // ==========================================
   if (checkingAuth) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -762,10 +709,23 @@ export default function PaperManagementSystem() {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // 第一部分结束，请回复"继续"获取第二和第三部分
-return (
+  if (showLiteratureTool) {
+    return <LiteratureSearch 
+      onBackToSystem={() => setShowLiteratureTool(false)} 
+      supabase={supabase}
+      userId={user?.email}
+    />;
+  }
+  
+  if (showEmpiricalTool) {
+    return <EmpiricalGenerator 
+      onBackToSystem={() => setShowEmpiricalTool(false)}
+      supabase={supabase}
+      userId={user?.email}
+    />;
+  }
+  return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
           <div className="bg-white rounded-xl p-6 shadow-2xl flex items-center gap-3">
@@ -775,7 +735,6 @@ return (
         </div>
       )}
 
-      {/* Header */}
       <div className="bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -786,20 +745,14 @@ return (
             </div>
             <div className="flex gap-3">
               <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors shadow-sm">
-                <Download size={18} />
-                导出
+                <Download size={18} />导出
               </button>
               <label className="flex items-center gap-2 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg transition-colors cursor-pointer shadow-sm">
-                <Upload size={18} />
-                导入
+                <Upload size={18} />导入
                 <input type="file" accept=".json,.csv" onChange={importData} className="hidden" />
               </label>
-              <button 
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm"
-              >
-                <X size={18} />
-                退出登录
+              <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm">
+                <X size={18} />退出登录
               </button>
             </div>
           </div>
@@ -807,75 +760,52 @@ return (
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* Navigation & Controls */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
           <div className="flex flex-wrap gap-3 items-center">
-            {/* View Mode */}
             <div className="flex gap-2 bg-slate-100 rounded-lg p-1">
-              <button 
-                onClick={() => setViewMode('papers')} 
-                className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'papers' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-              >
-                <FileText size={18} />
-                论文
+              <button onClick={() => setViewMode('papers')} className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'papers' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
+                <FileText size={18} />论文
               </button>
-              <button 
-                onClick={() => setViewMode('authors')} 
-                className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'authors' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-              >
-                <Users size={18} />
-                作者
+              <button onClick={() => setViewMode('authors')} className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'authors' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
+                <Users size={18} />作者
               </button>
-              <button 
-                onClick={() => setViewMode('todos')} 
-                className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all relative ${viewMode === 'todos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-              >
-                <AlertCircle size={18} />
-                待办
+              <button onClick={() => setViewMode('todos')} className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all relative ${viewMode === 'todos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
+                <AlertCircle size={18} />待办
                 {todos.filter(t => !t.handled).length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-medium">
                     {todos.filter(t => !t.handled).length}
                   </span>
                 )}
               </button>
-              <button 
-                onClick={() => setViewMode('history')} 
-                className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'history' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-              >
-                <Clock size={18} />
-                历史
+              <button onClick={() => setViewMode('history')} className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'history' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
+                <Clock size={18} />历史
               </button>
             </div>
 
             <div className="h-8 w-px bg-slate-200"></div>
 
-            {/* Search */}
+            <button onClick={() => setShowLiteratureTool(true)} className="flex items-center gap-2 px-4 py-2 rounded-md transition-all bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-sm">
+              <BookOpen size={18} />文献抓取
+            </button>
+
+            <button onClick={() => setShowEmpiricalTool(true)} className="flex items-center gap-2 px-4 py-2 rounded-md transition-all bg-gradient-to-r from-purple-500 to-pink-600 text-white hover:from-purple-600 hover:to-pink-700 shadow-sm">
+              <BarChart3 size={18} />实证生成
+            </button>
+
+            <div className="h-8 w-px bg-slate-200"></div>
+
             <div className="relative flex-1 min-w-[200px]">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text" 
-                value={searchQuery} 
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="搜索..."
-                className="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="搜索..." className="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                   <X size={18} />
                 </button>
               )}
             </div>
 
-            {/* Filters */}
             {viewMode === 'papers' && (
-              <select 
-                value={filterStatus} 
-                onChange={e => setFilterStatus(e.target.value)} 
-                className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                 <option value="all">所有状态</option>
                 {statusOpts.map(s => <option key={s.v} value={s.v}>{s.icon} {s.l}</option>)}
               </select>
@@ -883,22 +813,14 @@ return (
             
             {viewMode === 'authors' && (
               <>
-                <select 
-                  value={filterAmount} 
-                  onChange={e => setFilterAmount(e.target.value)} 
-                  className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
+                <select value={filterAmount} onChange={e => setFilterAmount(e.target.value)} className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                   <option value="all">所有金额</option>
                   <option value="no">无合作</option>
                   <option value="under10k">1万以下</option>
                   <option value="10k-20k">1-2万</option>
                   <option value="over20k">2万以上</option>
                 </select>
-                <select 
-                  value={filterDays} 
-                  onChange={e => setFilterDays(e.target.value)} 
-                  className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
+                <select value={filterDays} onChange={e => setFilterDays(e.target.value)} className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                   <option value="all">所有签约</option>
                   <option value="under30">30天内</option>
                   <option value="30-90">30-90天</option>
@@ -907,14 +829,7 @@ return (
               </>
             )}
             
-            {/* Add Button */}
-            <button 
-              onClick={() => { 
-                setModalType(viewMode === 'papers' ? 'paper' : viewMode === 'authors' ? 'author' : 'customTodo'); 
-                setShowModal(true); 
-              }} 
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors ml-auto shadow-sm"
-            >
+            <button onClick={() => { setModalType(viewMode === 'papers' ? 'paper' : viewMode === 'authors' ? 'author' : 'customTodo'); setShowModal(true); }} className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors ml-auto shadow-sm">
               <Plus size={18} />
               {viewMode === 'papers' ? '添加论文' : viewMode === 'authors' ? '添加作者' : '添加事项'}
             </button>
@@ -928,20 +843,14 @@ return (
           </div>
         </div>
 
-        {/* Papers View */}
         {viewMode === 'papers' && (
           <div className="grid md:grid-cols-2 gap-4">
             {filteredPapers.sort((a,b) => (a.serialNumber||0)-(b.serialNumber||0)).map(p => {
               const title = p.titleCN ? (p.titleCN.length > 40 ? p.titleCN.substring(0, 40) + '...' : p.titleCN) : (p.titleEN || '无题');
               const subDays = p.submissionDate ? calcDays(p.submissionDate) : null;
               const statusInfo = statusOpts.find(s => s.v === p.status);
-              
               return (
-                <div 
-                  key={p.id} 
-                  onClick={() => setSelectedPaper(p)} 
-                  className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group"
-                >
+                <div key={p.id} onClick={() => setSelectedPaper(p)} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group">
                   <div className="flex gap-4 mb-4">
                     <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-lg group-hover:scale-105 transition-transform">
                       {p.serialNumber || '?'}
@@ -954,15 +863,12 @@ return (
                       </span>
                     </div>
                   </div>
-                  
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-blue-600 font-medium">
                       <Clock size={16} />
                       {subDays !== null ? `已投稿 ${subDays} 天` : '尚未投稿'}
                     </div>
-                    {p.statusDate && (
-                      <div className="text-slate-600">状态存续：{calcDays(p.statusDate)} 天</div>
-                    )}
+                    {p.statusDate && <div className="text-slate-600">状态存续：{calcDays(p.statusDate)} 天</div>}
                     <div className="pt-2 border-t border-slate-100 space-y-1 text-slate-600">
                       <div>通讯：{p.correspondingAuthor || '-'}</div>
                       <div>一作：{p.firstAuthor || '-'}</div>
@@ -982,109 +888,82 @@ return (
             {filteredPapers.length === 0 && (
               <div className="col-span-2 bg-white rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
                 <FileText size={48} className="mx-auto text-slate-300 mb-3" />
-                <p className="text-slate-500">
-                  {papers.length === 0 ? '暂无论文，点击右上角"添加论文"开始' : '无筛选结果'}
-                </p>
+                <p className="text-slate-500">{papers.length === 0 ? '暂无论文，点击右上角"添加论文"开始' : '无筛选结果'}</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Authors View */}
         {viewMode === 'authors' && (
           <div className="grid md:grid-cols-3 gap-4">
-            {filteredAuthors.map(a => (
-              <div key={a.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-slate-800 mb-2">{a.name}</h3>
-                    {a.contractDate && (
-                      <div className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 rounded-full px-3 py-1 font-medium">
-                        <CheckCircle size={14} />
-                        签约 {calcDays(a.contractDate)} 天
+            {filteredAuthors.map(a => {
+              const authorPapers = getAuthorPapers(a.name);
+              const uniquePositions = [...new Set(authorPapers.map(ap => ap.position))];
+              return (
+                <div key={a.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-slate-800 mb-2">{a.name}</h3>
+                      {a.contractDate && (
+                        <div className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 rounded-full px-3 py-1 font-medium">
+                          <CheckCircle size={14} />签约 {calcDays(a.contractDate)} 天
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => { setEditItem(a); setAuthorForm({...a, cooperationAmounts: a.cooperationAmounts || [], affiliations: a.affiliations || ['']}); setModalType('author'); setShowModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        <Edit2 size={18} />
+                      </button>
+                      <button onClick={() => setDeleteConfirm({type:'author', id:a.id, name:a.name})} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    {authorPapers.length > 0 ? (
+                      <div>
+                        <div className="text-xs font-medium text-slate-500 mb-2">参与论文及作者位置</div>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {authorPapers.map((ap, i) => (
+                            <span key={i} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md font-medium">{ap.paperTitle}</span>
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {uniquePositions.map((p,i) => {
+                            const lbl = p==='first'?'一作':p==='corresponding'?'通讯':'二作';
+                            const color = p==='first'?'bg-blue-50 text-blue-700':p==='corresponding'?'bg-emerald-50 text-emerald-700':'bg-violet-50 text-violet-700';
+                            return <span key={i} className={`px-2 py-1 ${color} text-xs rounded-md font-medium`}>{lbl}</span>;
+                          })}
+                          <span className="px-2 py-1 bg-slate-50 text-slate-600 text-xs rounded-md font-semibold">共 {authorPapers.length} 篇</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-500 bg-slate-50 rounded p-3 text-center">暂未参与任何论文，点击"编辑"选择参与的论文</div>
+                    )}
+                    {a.cooperationAmounts && a.cooperationAmounts.length > 0 && (
+                      <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3">
+                        <div className="text-xs text-amber-700 mb-1">合作总额</div>
+                        <div className="text-xl font-bold text-amber-800">¥{calcTotal(a.cooperationAmounts).toLocaleString()}</div>
                       </div>
                     )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => { 
-                        setEditItem(a); 
-                        setAuthorForm({...a, cooperationAmounts: a.cooperationAmounts || [], affiliations: a.affiliations || ['']}); 
-                        setModalType('author'); 
-                        setShowModal(true); 
-                      }} 
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button 
-                      onClick={() => setDeleteConfirm({type:'author', id:a.id, name:a.name})} 
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <div className="pt-2 border-t border-slate-100 space-y-1 text-slate-600">
+                      {a.email && <div className="truncate">📧 {a.email}</div>}
+                      {a.wechat && <div>💬 {a.wechat}</div>}
+                      {a.phone && <div>📱 {a.phone}</div>}
+                    </div>
                   </div>
                 </div>
-                
-                <div className="space-y-3 text-sm">
-                  {a.researchField && a.researchField.length > 0 && (
-                    <div>
-                      <div className="text-xs font-medium text-slate-500 mb-2">研究方向</div>
-                      <div className="flex flex-wrap gap-1">
-                        {a.researchField.map((f,i) => (
-                          <span key={i} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md font-medium">
-                            {f}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {getAuthorPapers(a.name).length > 0 && (
-                    <div>
-                      <div className="text-xs font-medium text-slate-500 mb-2">作者位置</div>
-                      <div className="flex flex-wrap gap-1">
-                        {[...new Set(getAuthorPapers(a.name).map(ap => ap.position))].map((p,i) => {
-                          const lbl = p==='first'?'一作':p==='corresponding'?'通讯':'二作';
-                          const color = p==='first'?'bg-blue-50 text-blue-700':p==='corresponding'?'bg-emerald-50 text-emerald-700':'bg-violet-50 text-violet-700';
-                          return <span key={i} className={`px-2 py-1 ${color} text-xs rounded-md font-medium`}>{lbl}</span>;
-                        })}
-                        <span className="px-2 py-1 bg-slate-50 text-slate-600 text-xs rounded-md">
-                          {getAuthorPapers(a.name).length} 篇
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {a.cooperationAmounts && a.cooperationAmounts.length > 0 && (
-                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3">
-                      <div className="text-xs text-amber-700 mb-1">合作总额</div>
-                      <div className="text-xl font-bold text-amber-800">
-                        ¥{calcTotal(a.cooperationAmounts).toLocaleString()}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="pt-2 border-t border-slate-100 space-y-1 text-slate-600">
-                    {a.email && <div className="truncate">📧 {a.email}</div>}
-                    {a.wechat && <div>💬 {a.wechat}</div>}
-                    {a.phone && <div>📱 {a.phone}</div>}
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {filteredAuthors.length === 0 && (
               <div className="col-span-3 bg-white rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
                 <Users size={48} className="mx-auto text-slate-300 mb-3" />
-                <p className="text-slate-500">
-                  {authors.length === 0 ? '暂无作者' : '无筛选结果'}
-                </p>
+                <p className="text-slate-500">{authors.length === 0 ? '暂无作者' : '无筛选结果'}</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Todos View */}
         {viewMode === 'todos' && (
           <div className="space-y-4">
             {todos.filter(t => !t.handled).length === 0 ? (
@@ -1102,7 +981,6 @@ return (
                   if (todo.type === 'revision') return 'from-orange-50 to-orange-100';
                   return 'from-slate-50 to-slate-100';
                 };
-                
                 return (
                   <div key={todo.id} className={`bg-gradient-to-r ${getBgColor()} rounded-xl shadow-sm border border-slate-200 p-6`}>
                     <div className="flex gap-4">
@@ -1117,12 +995,8 @@ return (
                       <div className="flex-1">
                         <h3 className="text-lg font-bold text-slate-800 mb-2">{todo.title}</h3>
                         <div className="flex flex-wrap gap-2 mb-3">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusOpts.find(s => s.l === todo.status)?.c || 'bg-slate-100 text-slate-700'}`}>
-                            {todo.status}
-                          </span>
-                          <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">
-                            已持续 {todo.days} 天
-                          </span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusOpts.find(s => s.l === todo.status)?.c || 'bg-slate-100 text-slate-700'}`}>{todo.status}</span>
+                          <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-bold">已持续 {todo.days} 天</span>
                         </div>
                         <p className="text-sm text-slate-600">
                           {todo.type === 'preparing' && '提醒：该论文仍在准备中，请及时跟进'}
@@ -1132,35 +1006,12 @@ return (
                         </p>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <button 
-                          onClick={() => {
-                            const paper = papers.find(p => p.id === todo.paperId);
-                            if (paper) setSelectedPaper(paper);
-                          }} 
-                          className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg border border-slate-200 transition-colors text-sm font-medium whitespace-nowrap"
-                        >
-                          查看详情
-                        </button>
+                        <button onClick={() => { const paper = papers.find(p => p.id === todo.paperId); if (paper) setSelectedPaper(paper); }} className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg border border-slate-200 transition-colors text-sm font-medium whitespace-nowrap">查看详情</button>
                         {(todo.type === 'preparing' || todo.type === 'review' || todo.type === 'final') && (
-                          <button 
-                            onClick={() => handleTodo(todo.id, 'tomorrow')} 
-                            className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors text-sm font-medium whitespace-nowrap"
-                          >
-                            明天提醒
-                          </button>
+                          <button onClick={() => handleTodo(todo.id, 'tomorrow')} className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors text-sm font-medium whitespace-nowrap">明天提醒</button>
                         )}
-                        <button 
-                          onClick={() => handleTodo(todo.id, 'done')} 
-                          className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg transition-colors text-sm font-medium whitespace-nowrap"
-                        >
-                          已办理
-                        </button>
-                        <button 
-                          onClick={() => handleTodo(todo.id, 'ignore')} 
-                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors text-sm font-medium whitespace-nowrap"
-                        >
-                          忽略
-                        </button>
+                        <button onClick={() => handleTodo(todo.id, 'done')} className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg transition-colors text-sm font-medium whitespace-nowrap">已办理</button>
+                        <button onClick={() => handleTodo(todo.id, 'ignore')} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors text-sm font-medium whitespace-nowrap">忽略</button>
                       </div>
                     </div>
                   </div>
@@ -1170,24 +1021,12 @@ return (
           </div>
         )}
 
-        {/* History View */}
         {viewMode === 'history' && (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-slate-800">操作历史记录</h2>
               {history.length > 0 && (
-                <button 
-                  onClick={async () => {
-                    if (window.confirm('确定要清空所有历史记录吗？')) {
-                      await supabase.from('history').delete().neq('id', 0);
-                      setHistory([]);
-                      notify('已清空历史记录');
-                    }
-                  }}
-                  className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors"
-                >
-                  清空历史
-                </button>
+                <button onClick={async () => { if (window.confirm('确定要清空所有历史记录吗？')) { await supabase.from('history').delete().neq('id', 0); setHistory([]); notify('已清空历史记录'); }}} className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors">清空历史</button>
               )}
             </div>
             {history.length === 0 ? (
@@ -1204,9 +1043,9 @@ return (
                     if (record.action === '添加') return 'from-emerald-50 to-emerald-100';
                     if (record.action === '编辑') return 'from-blue-50 to-blue-100';
                     if (record.action === '处理') return 'from-orange-50 to-orange-100';
+                    if (record.action === '导出') return 'from-purple-50 to-purple-100';
                     return 'from-red-50 to-red-100';
                   };
-                  
                   return (
                     <div key={record.id} className={`flex items-start gap-4 p-4 bg-gradient-to-r ${getColor()} rounded-lg border border-slate-200`}>
                       <div className="flex-shrink-0 w-12 h-12 bg-white rounded-lg flex items-center justify-center text-2xl shadow-sm">
@@ -1214,6 +1053,7 @@ return (
                         {record.action === '编辑' && '✏️'}
                         {record.action === '处理' && '✅'}
                         {record.action === '删除' && '🗑️'}
+                        {record.action === '导出' && '📥'}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -1221,13 +1061,10 @@ return (
                             record.action === '添加' ? 'bg-emerald-600 text-white' :
                             record.action === '编辑' ? 'bg-blue-600 text-white' :
                             record.action === '处理' ? 'bg-orange-600 text-white' :
+                            record.action === '导出' ? 'bg-purple-600 text-white' :
                             'bg-red-600 text-white'
-                          }`}>
-                            {record.action}
-                          </span>
-                          <span className="px-2 py-1 bg-white rounded-md text-xs font-medium text-slate-700 border border-slate-200">
-                            {record.target}
-                          </span>
+                          }`}>{record.action}</span>
+                          <span className="px-2 py-1 bg-white rounded-md text-xs font-medium text-slate-700 border border-slate-200">{record.target}</span>
                         </div>
                         <div className="text-sm text-slate-700 font-medium mb-1">{record.details}</div>
                         <div className="text-xs text-slate-500">{timeStr}</div>
@@ -1240,9 +1077,6 @@ return (
           </div>
         )}
       </div>
-
-      {/* 第二部分结束，请回复"继续"获取第三部分（弹窗部分）*/}
-      {/* Paper Detail Modal - 论文详情弹窗 */}
       {selectedPaper && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-auto flex items-center justify-center p-4" onClick={() => setSelectedPaper(null)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8" onClick={e => e.stopPropagation()}>
@@ -1264,7 +1098,6 @@ return (
                 </button>
               </div>
             </div>
-            
             <div className="p-6 space-y-6">
               <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[200px]">
@@ -1275,17 +1108,12 @@ return (
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <label className="block text-sm font-medium text-slate-700 mb-2">状态更新日期</label>
-                  <input 
-                    type="date" 
-                    value={selectedPaper.statusDate || ''} 
-                    onChange={async (e) => {
-                      const up = {...selectedPaper, statusDate: e.target.value};
-                      await supabase.from('papers').update({ status_date: e.target.value }).eq('id', selectedPaper.id);
-                      setPapers(papers.map(p => p.id === selectedPaper.id ? up : p));
-                      setSelectedPaper(up);
-                    }} 
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <input type="date" value={selectedPaper.statusDate || ''} onChange={async (e) => {
+                    const up = {...selectedPaper, statusDate: e.target.value};
+                    await supabase.from('papers').update({ status_date: e.target.value }).eq('id', selectedPaper.id);
+                    setPapers(papers.map(p => p.id === selectedPaper.id ? up : p));
+                    setSelectedPaper(up);
+                  }} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 {selectedPaper.statusDate && (
                   <div className="flex-1 min-w-[200px]">
@@ -1297,44 +1125,25 @@ return (
                   </div>
                 )}
               </div>
-
               <div className="flex gap-4">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-slate-700 mb-2">当前状态</label>
-                  <select 
-                    value={selectedPaper.status} 
-                    onChange={async (e) => {
-                      const newStatus = e.target.value;
-                      const newDate = new Date().toISOString().split('T')[0];
-                      const up = {...selectedPaper, status: newStatus, statusDate: newDate};
-                      await supabase.from('papers').update({ 
-                        status: newStatus, 
-                        status_date: newDate 
-                      }).eq('id', selectedPaper.id);
-                      setPapers(papers.map(p => p.id === selectedPaper.id ? up : p));
-                      setSelectedPaper(up);
-                      notify('状态已更新');
-                    }} 
-                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  >
+                  <select value={selectedPaper.status} onChange={async (e) => {
+                    const newStatus = e.target.value;
+                    const newDate = new Date().toISOString().split('T')[0];
+                    const up = {...selectedPaper, status: newStatus, statusDate: newDate};
+                    await supabase.from('papers').update({ status: newStatus, status_date: newDate }).eq('id', selectedPaper.id);
+                    setPapers(papers.map(p => p.id === selectedPaper.id ? up : p));
+                    setSelectedPaper(up);
+                    notify('状态已更新');
+                  }} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                     {statusOpts.map(s => <option key={s.v} value={s.v}>{s.icon} {s.l}</option>)}
                   </select>
                 </div>
-                <button 
-                  onClick={() => { 
-                    setPaperForm(selectedPaper); 
-                    setEditItem(selectedPaper); 
-                    setModalType('paper'); 
-                    setShowModal(true); 
-                    setSelectedPaper(null); 
-                  }} 
-                  className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm"
-                >
-                  <Edit2 size={18} />
-                  编辑论文
+                <button onClick={() => { setPaperForm(selectedPaper); setEditItem(selectedPaper); setModalType('paper'); setShowModal(true); setSelectedPaper(null); }} className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm">
+                  <Edit2 size={18} />编辑论文
                 </button>
               </div>
-
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-xl border border-blue-200">
                   <div className="text-xs font-medium text-blue-700 mb-1">第一作者</div>
@@ -1349,30 +1158,20 @@ return (
                   <div className="text-lg font-bold text-violet-900">{selectedPaper.secondAuthor || '-'}</div>
                 </div>
               </div>
-
               {selectedPaper.journal && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">投稿期刊</label>
-                  <div className="px-4 py-3 bg-slate-50 rounded-lg text-slate-700 border border-slate-200">
-                    {selectedPaper.journal}
-                  </div>
+                  <div className="px-4 py-3 bg-slate-50 rounded-lg text-slate-700 border border-slate-200">{selectedPaper.journal}</div>
                 </div>
               )}
-
               {selectedPaper.submissionLink && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">投稿链接</label>
-                  <a 
-                    href={selectedPaper.submissionLink} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="block px-4 py-3 bg-slate-50 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-slate-100 transition-colors border border-slate-200 break-all"
-                  >
+                  <a href={selectedPaper.submissionLink} target="_blank" rel="noopener noreferrer" className="block px-4 py-3 bg-slate-50 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-slate-100 transition-colors border border-slate-200 break-all">
                     {selectedPaper.submissionLink}
                   </a>
                 </div>
               )}
-              
               {(selectedPaper.submissionEmail || selectedPaper.contactEmail) && (
                 <div className="grid md:grid-cols-2 gap-4">
                   {selectedPaper.submissionEmail && (
@@ -1407,17 +1206,12 @@ return (
                   )}
                 </div>
               )}
-              
               {selectedPaper.notes && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">备注信息</label>
-                  <div className="px-4 py-3 bg-slate-50 rounded-lg text-slate-700 border border-slate-200 whitespace-pre-wrap">
-                    {selectedPaper.notes}
-                  </div>
+                  <div className="px-4 py-3 bg-slate-50 rounded-lg text-slate-700 border border-slate-200 whitespace-pre-wrap">{selectedPaper.notes}</div>
                 </div>
               )}
-
-              {/* 显示附件文件 */}
               {selectedPaper.files && (selectedPaper.files.word || selectedPaper.files.pdf || selectedPaper.files.excel) && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">📎 附件文件</label>
@@ -1428,15 +1222,8 @@ return (
                           <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">📄</div>
                           <span className="text-sm font-medium text-blue-900">Word</span>
                         </div>
-                        <div className="text-xs text-slate-600 truncate mb-2" title={selectedPaper.files.word.name}>
-                          {selectedPaper.files.word.name}
-                        </div>
-                        <button
-                          onClick={() => handleFileDownload(selectedPaper.files.word)}
-                          className="w-full px-3 py-2 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
-                        >
-                          下载文件
-                        </button>
+                        <div className="text-xs text-slate-600 truncate mb-2" title={selectedPaper.files.word.name}>{selectedPaper.files.word.name}</div>
+                        <button onClick={() => handleFileDownload(selectedPaper.files.word)} className="w-full px-3 py-2 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors">下载文件</button>
                       </div>
                     )}
                     {selectedPaper.files.pdf && (
@@ -1445,15 +1232,8 @@ return (
                           <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center">📕</div>
                           <span className="text-sm font-medium text-red-900">PDF</span>
                         </div>
-                        <div className="text-xs text-slate-600 truncate mb-2" title={selectedPaper.files.pdf.name}>
-                          {selectedPaper.files.pdf.name}
-                        </div>
-                        <button
-                          onClick={() => handleFileDownload(selectedPaper.files.pdf)}
-                          className="w-full px-3 py-2 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors"
-                        >
-                          下载文件
-                        </button>
+                        <div className="text-xs text-slate-600 truncate mb-2" title={selectedPaper.files.pdf.name}>{selectedPaper.files.pdf.name}</div>
+                        <button onClick={() => handleFileDownload(selectedPaper.files.pdf)} className="w-full px-3 py-2 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors">下载文件</button>
                       </div>
                     )}
                     {selectedPaper.files.excel && (
@@ -1462,28 +1242,16 @@ return (
                           <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center">📊</div>
                           <span className="text-sm font-medium text-green-900">Excel</span>
                         </div>
-                        <div className="text-xs text-slate-600 truncate mb-2" title={selectedPaper.files.excel.name}>
-                          {selectedPaper.files.excel.name}
-                        </div>
-                        <button
-                          onClick={() => handleFileDownload(selectedPaper.files.excel)}
-                          className="w-full px-3 py-2 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors"
-                        >
-                          下载文件
-                        </button>
+                        <div className="text-xs text-slate-600 truncate mb-2" title={selectedPaper.files.excel.name}>{selectedPaper.files.excel.name}</div>
+                        <button onClick={() => handleFileDownload(selectedPaper.files.excel)} className="w-full px-3 py-2 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors">下载文件</button>
                       </div>
                     )}
                   </div>
                 </div>
               )}
-
               <div className="flex justify-end pt-4 border-t border-slate-200">
-                <button 
-                  onClick={() => setDeleteConfirm({type:'paper', id:selectedPaper.id, name:selectedPaper.titleCN||selectedPaper.titleEN})} 
-                  className="flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm"
-                >
-                  <Trash2 size={18} />
-                  删除论文
+                <button onClick={() => setDeleteConfirm({type:'paper', id:selectedPaper.id, name:selectedPaper.titleCN||selectedPaper.titleEN})} className="flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm">
+                  <Trash2 size={18} />删除论文
                 </button>
               </div>
             </div>
@@ -1491,470 +1259,6 @@ return (
         </div>
       )}
 
-      {/* Add/Edit Modal - 添加/编辑弹窗 */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-auto flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-8">
-            <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-6 rounded-t-2xl">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">
-                  {modalType === 'paper' ? (editItem ? '编辑论文' : '添加论文') : 
-                   modalType === 'author' ? (editItem ? '编辑作者' : '添加作者') : 
-                   '添加自定义事项'}
-                </h2>
-                <button onClick={resetForm} className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors">
-                  <X size={24} />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-              {modalType === 'customTodo' ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">事项名称 *</label>
-                    <input 
-                      value={customTodoForm.name} 
-                      onChange={e => setCustomTodoForm({...customTodoForm, name: e.target.value})} 
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                      placeholder="例如：联系XX期刊编辑部"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">提醒备注</label>
-                    <textarea 
-                      value={customTodoForm.note} 
-                      onChange={e => setCustomTodoForm({...customTodoForm, note: e.target.value})} 
-                      rows={4}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                      placeholder="备注信息..."
-                    />
-                  </div>
-                  <div className="flex gap-3 pt-4 border-t border-slate-200">
-                    <button onClick={saveCustomTodo} disabled={loading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50">
-                      <Save size={20} />添加事项
-                    </button>
-                    <button onClick={resetForm} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors">取消</button>
-                  </div>
-                </div>
-              ) : modalType === 'paper' ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">中文题目 *</label>
-                    <textarea value={paperForm.titleCN} onChange={e => setPaperForm({...paperForm, titleCN: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="请输入论文的中文题目" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">英文题目</label>
-                    <textarea value={paperForm.titleEN} onChange={e => setPaperForm({...paperForm, titleEN: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="请输入论文的英文题目" />
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">一作</label>
-                      <input value={paperForm.firstAuthor} onChange={e => setPaperForm({...paperForm, firstAuthor: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="第一作者" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">通讯</label>
-                      <input value={paperForm.correspondingAuthor} onChange={e => setPaperForm({...paperForm, correspondingAuthor: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="通讯作者" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">二作</label>
-                      <input value={paperForm.secondAuthor} onChange={e => setPaperForm({...paperForm, secondAuthor: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="第二作者" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">期刊</label>
-                    <select value={paperForm.journal} onChange={e => setPaperForm({...paperForm, journal: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                      <option value="">选择期刊</option>
-                      {journals.map(j => <option key={j} value={j}>{j}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">投稿链接</label>
-                    <input type="url" value={paperForm.submissionLink} onChange={e => setPaperForm({...paperForm, submissionLink: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://..." />
-                  </div>
-                  
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                    <div className="font-medium mb-3 text-blue-900">投稿账号信息</div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">投稿邮箱</label>
-                        <input type="email" value={paperForm.submissionEmail} onChange={e => setPaperForm({...paperForm, submissionEmail: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="submission@email.com" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">投稿密码</label>
-                        <input type="text" value={paperForm.submissionPassword} onChange={e => setPaperForm({...paperForm, submissionPassword: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="密码" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="font-medium text-emerald-900">联系邮箱信息</div>
-                      <button 
-                        type="button"
-                        onClick={() => setPaperForm({
-                          ...paperForm, 
-                          contactEmail: paperForm.submissionEmail, 
-                          contactPassword: paperForm.submissionPassword
-                        })}
-                        className="px-3 py-1 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 transition-colors"
-                      >
-                        与投稿邮箱一致
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">联系邮箱</label>
-                        <input type="email" value={paperForm.contactEmail} onChange={e => setPaperForm({...paperForm, contactEmail: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="contact@email.com" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">联系密码</label>
-                        <input type="text" value={paperForm.contactPassword} onChange={e => setPaperForm({...paperForm, contactPassword: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="密码" />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">投稿日期</label>
-                    <input type="date" value={paperForm.submissionDate} onChange={e => setPaperForm({...paperForm, submissionDate: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">状态</label>
-                    <select value={paperForm.status} onChange={e => setPaperForm({...paperForm, status: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                      {statusOpts.map(s => <option key={s.v} value={s.v}>{s.icon} {s.l}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">备注</label>
-                    <textarea value={paperForm.notes} onChange={e => setPaperForm({...paperForm, notes: e.target.value})} rows={3} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="其他备注信息" />
-                  </div>
-                  
-                  {/* 文件上传区域 */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                    <div className="font-medium mb-3 text-slate-900">📎 附件文件</div>
-                    <div className="grid grid-cols-3 gap-4">
-                      {/* Word文件 */}
-                      <div className="bg-white border border-slate-200 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center text-lg">📄</div>
-                          <span className="text-sm font-medium text-slate-700">Word</span>
-                        </div>
-                        {paperForm.files?.word ? (
-                          <div className="space-y-2">
-                            <div className="text-xs text-slate-600 truncate" title={paperForm.files.word.name}>
-                              {paperForm.files.word.name}
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              {(paperForm.files.word.size / 1024).toFixed(1)} KB
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleFileDownload(paperForm.files.word)}
-                                className="flex-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors"
-                              >
-                                下载
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleFileDelete('word')}
-                                className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors"
-                              >
-                                删除
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label className="block">
-                            <input
-                              type="file"
-                              accept=".doc,.docx"
-                              onChange={(e) => handleFileUpload(e, 'word')}
-                              className="hidden"
-                            />
-                            <div className="px-3 py-2 bg-blue-50 text-blue-600 rounded text-xs text-center cursor-pointer hover:bg-blue-100 transition-colors border border-blue-200">
-                              + 上传Word
-                            </div>
-                          </label>
-                        )}
-                      </div>
-
-                      {/* PDF文件 */}
-                      <div className="bg-white border border-slate-200 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center text-lg">📕</div>
-                          <span className="text-sm font-medium text-slate-700">PDF</span>
-                        </div>
-                        {paperForm.files?.pdf ? (
-                          <div className="space-y-2">
-                            <div className="text-xs text-slate-600 truncate" title={paperForm.files.pdf.name}>
-                              {paperForm.files.pdf.name}
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              {(paperForm.files.pdf.size / 1024).toFixed(1)} KB
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleFileDownload(paperForm.files.pdf)}
-                                className="flex-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors"
-                              >
-                                下载
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleFileDelete('pdf')}
-                                className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors"
-                              >
-                                删除
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label className="block">
-                            <input
-                              type="file"
-                              accept=".pdf"
-                              onChange={(e) => handleFileUpload(e, 'pdf')}
-                              className="hidden"
-                            />
-                            <div className="px-3 py-2 bg-red-50 text-red-600 rounded text-xs text-center cursor-pointer hover:bg-red-100 transition-colors border border-red-200">
-                              + 上传PDF
-                            </div>
-                          </label>
-                        )}
-                      </div>
-
-                      {/* Excel文件 */}
-                      <div className="bg-white border border-slate-200 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center text-lg">📊</div>
-                          <span className="text-sm font-medium text-slate-700">Excel</span>
-                        </div>
-                        {paperForm.files?.excel ? (
-                          <div className="space-y-2">
-                            <div className="text-xs text-slate-600 truncate" title={paperForm.files.excel.name}>
-                              {paperForm.files.excel.name}
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              {(paperForm.files.excel.size / 1024).toFixed(1)} KB
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleFileDownload(paperForm.files.excel)}
-                                className="flex-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200 transition-colors"
-                              >
-                                下载
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleFileDelete('excel')}
-                                className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors"
-                              >
-                                删除
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <label className="block">
-                            <input
-                              type="file"
-                              accept=".xls,.xlsx"
-                              onChange={(e) => handleFileUpload(e, 'excel')}
-                              className="hidden"
-                            />
-                            <div className="px-3 py-2 bg-green-50 text-green-600 rounded text-xs text-center cursor-pointer hover:bg-green-100 transition-colors border border-green-200">
-                              + 上传Excel
-                            </div>
-                          </label>
-                        )}
-                      </div>
-                    </div>
-                    <div className="mt-3 text-xs text-slate-500">
-                      💡 提示：支持上传Word、PDF、Excel文件，单个文件最大10MB，新上传的文件会自动覆盖旧文件
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-3 pt-4 border-t border-slate-200">
-                    <button onClick={savePaper} disabled={loading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50">
-                      <Save size={20} />{editItem ? '保存修改' : '添加论文'}
-                    </button>
-                    <button onClick={resetForm} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors">取消</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">姓名 *</label>
-                    <input value={authorForm.name} onChange={e => setAuthorForm({...authorForm, name: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">微信</label>
-                      <input value={authorForm.wechat} onChange={e => setAuthorForm({...authorForm, wechat: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">电话</label>
-                      <input value={authorForm.phone} onChange={e => setAuthorForm({...authorForm, phone: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">邮箱</label>
-                    <input type="email" value={authorForm.email} onChange={e => setAuthorForm({...authorForm, email: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">签约日期</label>
-                    <input type="date" value={authorForm.contractDate} onChange={e => setAuthorForm({...authorForm, contractDate: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">研究方向</label>
-                    {getFields().length === 0 ? (
-                      <div className="text-sm bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-700">请先添加论文</div>
-                    ) : (
-                      <div className="border border-slate-200 rounded-lg p-3 max-h-48 overflow-y-auto bg-slate-50">
-                        {getFields().map(f => (
-                          <label key={f} className="flex gap-2 py-2 hover:bg-white rounded px-2 cursor-pointer transition-colors">
-                            <input type="checkbox" checked={(authorForm.researchField || []).includes(f)} onChange={e => {
-                              if (e.target.checked) {
-                                setAuthorForm({...authorForm, researchField: [...(authorForm.researchField || []), f]});
-                              } else {
-                                setAuthorForm({...authorForm, researchField: (authorForm.researchField || []).filter(x => x !== f)});
-                              }
-                            }} className="mt-1" />
-                            <span className="text-sm flex-1">{f}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {editItem && getAuthorPapers(editItem.name).length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">参与论文及作者位置</label>
-                      <div className="space-y-2">
-                        {getAuthorPapers(editItem.name).map((ap, idx) => (
-                          <div key={idx} className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex justify-between items-center">
-                            <div>
-                              <div className="font-medium text-slate-800">{ap.paperTitle}</div>
-                              <div className="text-sm text-slate-600 mt-1">
-                                当前位置：
-                                <span className={'ml-2 px-2 py-1 rounded-full text-xs font-medium ' + 
-                                  (ap.position === 'first' ? 'bg-blue-100 text-blue-800' : 
-                                   ap.position === 'corresponding' ? 'bg-emerald-100 text-emerald-800' : 
-                                   'bg-violet-100 text-violet-800')}>
-                                  {ap.position === 'first' ? '一作' : ap.position === 'corresponding' ? '通讯' : '二作'}
-                                </span>
-                              </div>
-                            </div>
-                            <button 
-                              onClick={() => {
-                                const paper = papers.find(p => p.id === ap.paperId);
-                                if (paper) {
-                                  setSelectedPaper(paper);
-                                  resetForm();
-                                }
-                              }}
-                              className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-                            >
-                              查看详情
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <label className="text-sm font-medium text-slate-700">合作金额</label>
-                      <button onClick={() => setAuthorForm({...authorForm, cooperationAmounts: [...(authorForm.cooperationAmounts||[]), {amount:'', date:'', project:'', position:'', note:''}]})} className="text-sm px-3 py-2 bg-amber-600 text-white rounded flex items-center gap-1 hover:bg-amber-700 transition-colors">
-                        <Plus size={16} />添加
-                      </button>
-                    </div>
-                    {(!authorForm.cooperationAmounts || authorForm.cooperationAmounts.length === 0) ? (
-                      <div className="text-sm bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-600">暂无记录</div>
-                    ) : (
-                      <div className="space-y-3">
-                        {authorForm.cooperationAmounts.map((it, idx) => (
-                          <div key={idx} className="bg-amber-50 p-4 rounded-xl border border-amber-300">
-                            <div className="flex justify-between mb-3">
-                              <span className="text-sm font-bold text-amber-900">#{idx+1}</span>
-                              <button onClick={() => setAuthorForm({...authorForm, cooperationAmounts: authorForm.cooperationAmounts.filter((v,i) => i!==idx)})} className="text-red-600 hover:text-red-700"><Trash2 size={16} /></button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-xs font-medium text-slate-700 mb-1">项目</label>
-                                <select value={it.project||''} onChange={e => {
-                                  const n = [...authorForm.cooperationAmounts];
-                                  n[idx] = {...n[idx], project: e.target.value};
-                                  setAuthorForm({...authorForm, cooperationAmounts: n});
-                                }} className="w-full px-3 py-2 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                                  <option value="">选择</option>
-                                  {getFields().map(f => <option key={f} value={f}>{f}</option>)}
-                                </select>
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-slate-700 mb-1">位置</label>
-                                <select value={it.position||''} onChange={e => {
-                                  const n = [...authorForm.cooperationAmounts];
-                                  n[idx] = {...n[idx], position: e.target.value};
-                                  setAuthorForm({...authorForm, cooperationAmounts: n});
-                                }} className="w-full px-3 py-2 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                                  <option value="">选择</option>
-                                  <option value="first">一作</option>
-                                  <option value="corresponding">通讯</option>
-                                  <option value="second">二作</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-slate-700 mb-1">金额</label>
-                                <input type="number" value={it.amount||''} onChange={e => {
-                                  const n = [...authorForm.cooperationAmounts];
-                                  n[idx] = {...n[idx], amount: e.target.value};
-                                  setAuthorForm({...authorForm, cooperationAmounts: n});
-                                }} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                              </div>
-                              <div>
-                                <label className="block text-xs font-medium text-slate-700 mb-1">日期</label>
-                                <input type="date" value={it.date||''} onChange={e => {
-                                  const n = [...authorForm.cooperationAmounts];
-                                  n[idx] = {...n[idx], date: e.target.value};
-                                  setAuthorForm({...authorForm, cooperationAmounts: n});
-                                }} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                              </div>
-                              <div className="col-span-2">
-                                <label className="block text-xs font-medium text-slate-700 mb-1">备注</label>
-                                <input value={it.note||''} onChange={e => {
-                                  const n = [...authorForm.cooperationAmounts];
-                                  n[idx] = {...n[idx], note: e.target.value};
-                                  setAuthorForm({...authorForm, cooperationAmounts: n});
-                                }} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="bg-gradient-to-r from-amber-100 to-amber-200 border-2 border-amber-400 rounded-xl p-4 text-center">
-                          <span className="text-sm font-medium text-amber-900">总金额：</span>
-                          <span className="text-2xl font-bold text-amber-900 ml-2">¥{calcTotal(authorForm.cooperationAmounts).toLocaleString()}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-3 pt-4 border-t border-slate-200">
-                    <button onClick={saveAuthor} disabled={loading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50">
-                      <Save size={20} />{editItem ? '保存修改' : '添加作者'}
-                    </button>
-                    <button onClick={resetForm} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors">取消</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal - 删除确认（添加数据库同步）*/}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
@@ -1997,11 +1301,12 @@ return (
         </div>
       )}
 
-      {/* Notification Toast */}
       {notification && (
         <div className="fixed top-6 right-6 z-50 animate-slide-in">
           <div className={`px-6 py-4 rounded-xl shadow-2xl text-white font-medium flex items-center gap-3 ${
-            notification.type === 'error' ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-emerald-500 to-emerald-600'
+            notification.type === 'error' ? 'bg-gradient-to-r from-red-500 to-red-600' : 
+            notification.type === 'info' ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
+            'bg-gradient-to-r from-emerald-500 to-emerald-600'
           }`}>
             {notification.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             {notification.message}
@@ -2009,21 +1314,476 @@ return (
         </div>
       )}
 
-      <style>{`
-        @keyframes slide-in {
-          from {
-            transform: translateY(-20px);
-            opacity: 0;
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-auto flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-8">
+            <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-6 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">
+                  {modalType === 'paper' ? (editItem ? '编辑论文' : '添加论文') : 
+                   modalType === 'author' ? (editItem ? '编辑作者' : '添加作者') : 
+                   '添加自定义事项'}
+                </h2>
+                <button onClick={resetForm} className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+              {modalType === 'customTodo' ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">事项名称 *</label>
+                    <input value={customTodoForm.name} onChange={e => setCustomTodoForm({...customTodoForm, name: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例如：联系XX期刊编辑部" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">提醒备注</label>
+                    <textarea value={customTodoForm.note} onChange={e => setCustomTodoForm({...customTodoForm, note: e.target.value})} rows={4} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="备注信息..." />
+                  </div>
+                  <div className="flex gap-3 pt-4 border-t border-slate-200">
+                    <button onClick={saveCustomTodo} disabled={loading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50">
+                      <Save size={20} />添加事项
+                    </button>
+                    <button onClick={resetForm} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors">取消</button>
+                  </div>
+                </div>
+              ) : modalType === 'paper' ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">中文题目 *</label>
+                    <textarea value={paperForm.titleCN} onChange={e => setPaperForm({...paperForm, titleCN: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="请输入论文的中文题目" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">英文题目</label>
+                    <textarea value={paperForm.titleEN} onChange={e => setPaperForm({...paperForm, titleEN: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows={3} placeholder="请输入论文的英文题目" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">一作</label>
+                      <div className="flex flex-col gap-2">
+                        <input value={paperForm.firstAuthor} onChange={e => setPaperForm({...paperForm, firstAuthor: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="第一作者" />
+                        {paperForm.firstAuthor && authors.find(a => a.name === paperForm.firstAuthor) && (
+                          <button type="button" onClick={(e) => {
+                            e.preventDefault();
+                            const author = authors.find(a => a.name === paperForm.firstAuthor);
+                            setAuthorForm({...author, cooperationAmounts: author.cooperationAmounts || [], affiliations: author.affiliations || ['']});
+                            setEditItem(author);
+                            setModalType('author');
+                          }} className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm font-medium">查看作者详情</button>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">通讯</label>
+                      <div className="flex flex-col gap-2">
+                        <input value={paperForm.correspondingAuthor} onChange={e => setPaperForm({...paperForm, correspondingAuthor: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="通讯作者" />
+                        {paperForm.correspondingAuthor && authors.find(a => a.name === paperForm.correspondingAuthor) && (
+                          <button type="button" onClick={(e) => {
+                            e.preventDefault();
+                            const author = authors.find(a => a.name === paperForm.correspondingAuthor);
+                            setAuthorForm({...author, cooperationAmounts: author.cooperationAmounts || [], affiliations: author.affiliations || ['']});
+                            setEditItem(author);
+                            setModalType('author');
+                          }} className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm font-medium">查看作者详情</button>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">二作</label>
+                      <div className="flex flex-col gap-2">
+                        <input value={paperForm.secondAuthor} onChange={e => setPaperForm({...paperForm, secondAuthor: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="第二作者" />
+                        {paperForm.secondAuthor && authors.find(a => a.name === paperForm.secondAuthor) && (
+                          <button type="button" onClick={(e) => {
+                            e.preventDefault();
+                            const author = authors.find(a => a.name === paperForm.secondAuthor);
+                            setAuthorForm({...author, cooperationAmounts: author.cooperationAmounts || [], affiliations: author.affiliations || ['']});
+                            setEditItem(author);
+                            setModalType('author');
+                          }} className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm font-medium">查看作者详情</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">期刊</label>
+                    <select value={paperForm.journal} onChange={e => setPaperForm({...paperForm, journal: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                      <option value="">选择期刊</option>
+                      {journals.map(j => <option key={j} value={j}>{j}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">投稿链接</label>
+                    <input type="url" value={paperForm.submissionLink} onChange={e => setPaperForm({...paperForm, submissionLink: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://..." />
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div className="font-medium mb-3 text-blue-900">投稿账号信息</div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">投稿邮箱</label>
+                        <input type="email" value={paperForm.submissionEmail} onChange={e => setPaperForm({...paperForm, submissionEmail: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="submission@email.com" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">投稿密码</label>
+                        <input type="text" value={paperForm.submissionPassword} onChange={e => setPaperForm({...paperForm, submissionPassword: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="密码" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="font-medium text-emerald-900">联系邮箱信息</div>
+                      <button type="button" onClick={() => setPaperForm({...paperForm, contactEmail: paperForm.submissionEmail, contactPassword: paperForm.submissionPassword})} className="px-3 py-1 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 transition-colors">与投稿邮箱一致</button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">联系邮箱</label>
+                        <input type="email" value={paperForm.contactEmail} onChange={e => setPaperForm({...paperForm, contactEmail: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="contact@email.com" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">联系密码</label>
+                        <input type="text" value={paperForm.contactPassword} onChange={e => setPaperForm({...paperForm, contactPassword: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="密码" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">投稿日期</label>
+                    <input type="date" value={paperForm.submissionDate} onChange={e => setPaperForm({...paperForm, submissionDate: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">状态</label>
+                    <select value={paperForm.status} onChange={e => setPaperForm({...paperForm, status: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                      {statusOpts.map(s => <option key={s.v} value={s.v}>{s.icon} {s.l}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">备注</label>
+                    <textarea value={paperForm.notes} onChange={e => setPaperForm({...paperForm, notes: e.target.value})} rows={3} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="其他备注信息" />
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                    <div className="font-medium mb-3 text-slate-900">📎 附件文件</div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-white border border-slate-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center text-lg">📄</div>
+                          <span className="text-sm font-medium text-slate-700">Word</span>
+                        </div>
+                        {paperForm.files?.word ? (
+                          <div className="space-y-2">
+                            <div className="text-xs text-slate-600 truncate" title={paperForm.files.word.name}>{paperForm.files.word.name}</div>
+                            <div className="text-xs text-slate-500">{(paperForm.files.word.size / 1024).toFixed(1)} KB</div>
+                            <div className="flex gap-2">
+                              <button type="button" onClick={() => handleFileDownload(paperForm.files.word)} className="flex-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors">下载</button>
+                              <button type="button" onClick={() => handleFileDelete('word')} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors">删除</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="block">
+                            <input type="file" accept=".doc,.docx" onChange={(e) => handleFileUpload(e, 'word')} className="hidden" />
+                            <div className="px-3 py-2 bg-blue-50 text-blue-600 rounded text-xs text-center cursor-pointer hover:bg-blue-100 transition-colors border border-blue-200">+ 上传Word</div>
+                          </label>
+                        )}
+                      </div>
+                      <div className="bg-white border border-slate-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center text-lg">📕</div>
+                          <span className="text-sm font-medium text-slate-700">PDF</span>
+                        </div>
+                        {paperForm.files?.pdf ? (
+                          <div className="space-y-2">
+                            <div className="text-xs text-slate-600 truncate" title={paperForm.files.pdf.name}>{paperForm.files.pdf.name}</div>
+                            <div className="text-xs text-slate-500">{(paperForm.files.pdf.size / 1024).toFixed(1)} KB</div>
+                            <div className="flex gap-2">
+                              <button type="button" onClick={() => handleFileDownload(paperForm.files.pdf)} className="flex-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors">下载</button>
+                              <button type="button" onClick={() => handleFileDelete('pdf')} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors">删除</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="block">
+                            <input type="file" accept=".pdf" onChange={(e) => handleFileUpload(e, 'pdf')} className="hidden" />
+                            <div className="px-3 py-2 bg-red-50 text-red-600 rounded text-xs text-center cursor-pointer hover:bg-red-100 transition-colors border border-red-200">+ 上传PDF</div>
+                          </label>
+                        )}
+                      </div>
+                      <div className="bg-white border border-slate-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center text-lg">📊</div>
+                          <span className="text-sm font-medium text-slate-700">Excel</span>
+                        </div>
+                        {paperForm.files?.excel ? (
+                          <div className="space-y-2">
+                            <div className="text-xs text-slate-600 truncate" title={paperForm.files.excel.name}>{paperForm.files.excel.name}</div>
+                            <div className="text-xs text-slate-500">{(paperForm.files.excel.size / 1024).toFixed(1)} KB</div>
+                            <div className="flex gap-2">
+                              <button type="button" onClick={() => handleFileDownload(paperForm.files.excel)} className="flex-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200 transition-colors">下载</button>
+                              <button type="button" onClick={() => handleFileDelete('excel')} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors">删除</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="block">
+                            <input type="file" accept=".xls,.xlsx" onChange={(e) => handleFileUpload(e, 'excel')} className="hidden" />
+                            <div className="px-3 py-2 bg-green-50 text-green-600 rounded text-xs text-center cursor-pointer hover:bg-green-100 transition-colors border border-green-200">+ 上传Excel</div>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3 text-xs text-slate-500">💡 提示：支持上传Word、PDF、Excel文件，单个文件最大10MB，新上传的文件会自动覆盖旧文件</div>
+                  </div>
+                  <div className="flex gap-3 pt-4 border-t border-slate-200">
+                    <button onClick={savePaper} disabled={loading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50">
+                      <Save size={20} />{editItem ? '保存修改' : '添加论文'}
+                    </button>
+                    <button onClick={resetForm} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors">取消</button>
+                  </div>
+                </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">姓名 *</label>
+                      <input value={authorForm.name} onChange={e => setAuthorForm({...authorForm, name: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">微信</label>
+                        <input value={authorForm.wechat} onChange={e => setAuthorForm({...authorForm, wechat: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">电话</label>
+                        <input value={authorForm.phone} onChange={e => setAuthorForm({...authorForm, phone: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">邮箱</label>
+                      <input type="email" value={authorForm.email} onChange={e => setAuthorForm({...authorForm, email: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">签约日期</label>
+                      <input type="date" value={authorForm.contractDate} onChange={e => setAuthorForm({...authorForm, contractDate: e.target.value})} className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">研究方向</label>
+                      {getFields().length === 0 ? (
+                        <div className="text-sm bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-700">请先添加论文</div>
+                      ) : (
+                        <div className="border border-slate-200 rounded-lg p-3 max-h-48 overflow-y-auto bg-slate-50">
+                          {getFields().map(f => (
+                            <label key={f} className="flex gap-2 py-2 hover:bg-white rounded px-2 cursor-pointer transition-colors">
+                              <input type="checkbox" checked={(authorForm.researchField || []).includes(f)} onChange={e => {
+                                if (e.target.checked) {
+                                  setAuthorForm({...authorForm, researchField: [...(authorForm.researchField || []), f]});
+                                } else {
+                                  setAuthorForm({...authorForm, researchField: (authorForm.researchField || []).filter(x => x !== f)});
+                                }
+                              }} className="mt-1" />
+                              <span className="text-sm flex-1">{f}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-slate-700">参与论文及作者位置</label>
+                        <button type="button" onClick={() => {
+                          const selectDiv = document.getElementById('paper-select-author');
+                          if (selectDiv) selectDiv.classList.toggle('hidden');
+                        }} className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors font-medium">
+                          <Plus size={14} />添加论文
+                        </button>
+                      </div>
+                      <div id="paper-select-author" className="hidden mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="text-xs text-slate-600 mb-2">选择论文和作者位置：</div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <select id="paper-dropdown-author" className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="">选择论文</option>
+                            {papers.filter(p => {
+                              const authorPapers = getAuthorPapers(authorForm.name);
+                              return !authorPapers.some(ap => ap.paperId === p.id);
+                            }).map(p => (
+                              <option key={p.id} value={p.id}>{p.titleCN || p.titleEN || '未命名论文'}</option>
+                            ))}
+                          </select>
+                          <select id="position-dropdown-author" className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="">选择位置</option>
+                            <option value="first">一作</option>
+                            <option value="corresponding">通讯</option>
+                            <option value="second">二作</option>
+                          </select>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <button type="button" onClick={async () => {
+                            const paperSelect = document.getElementById('paper-dropdown-author');
+                            const positionSelect = document.getElementById('position-dropdown-author');
+                            const paperId = paperSelect.value;
+                            const position = positionSelect.value;
+                            if (!paperId || !position) {
+                              notify('请选择论文和位置', 'error');
+                              return;
+                            }
+                            const selectedPaper = papers.find(p => p.id === paperId);
+                            if (!selectedPaper) return;
+                            const dbUpdates = {};
+                            const stateUpdates = {};
+                            if (position === 'first') {
+                              dbUpdates.first_author = authorForm.name;
+                              stateUpdates.firstAuthor = authorForm.name;
+                            } else if (position === 'corresponding') {
+                              dbUpdates.corresponding_author = authorForm.name;
+                              stateUpdates.correspondingAuthor = authorForm.name;
+                            } else if (position === 'second') {
+                              dbUpdates.second_author = authorForm.name;
+                              stateUpdates.secondAuthor = authorForm.name;
+                            }
+                            try {
+                              setLoading(true);
+                              await supabase.from('papers').update(dbUpdates).eq('id', paperId);
+                              setPapers(papers.map(p => p.id === paperId ? {...p, ...stateUpdates} : p));
+                              document.getElementById('paper-select-author').classList.add('hidden');
+                              paperSelect.value = '';
+                              positionSelect.value = '';
+                              notify('已添加论文');
+                            } catch (error) {
+                              console.error('添加失败:', error);
+                              notify('添加失败', 'error');
+                            } finally {
+                              setLoading(false);
+                            }
+                          }} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">确认添加</button>
+                          <button type="button" onClick={() => {
+                            document.getElementById('paper-select-author').classList.add('hidden');
+                          }} className="px-3 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm hover:bg-slate-300 transition-colors">取消</button>
+                        </div>
+                      </div>
+                      {editItem && getAuthorPapers(editItem.name).length > 0 && (
+                        <div className="space-y-2 mb-4">
+                          {getAuthorPapers(editItem.name).map((ap, idx) => (
+                            <div key={idx} className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex justify-between items-center">
+                              <div>
+                                <div className="font-medium text-slate-800">{ap.paperTitle}</div>
+                                <div className="text-sm text-slate-600 mt-1">
+                                  当前位置：
+                                  <span className={'ml-2 px-2 py-1 rounded-full text-xs font-medium ' + 
+                                    (ap.position === 'first' ? 'bg-blue-100 text-blue-800' : 
+                                     ap.position === 'corresponding' ? 'bg-emerald-100 text-emerald-800' : 
+                                     'bg-violet-100 text-violet-800')}>
+                                    {ap.position === 'first' ? '一作' : ap.position === 'corresponding' ? '通讯' : '二作'}
+                                  </span>
+                                </div>
+                              </div>
+                              <button onClick={() => {
+                                const paper = papers.find(p => p.id === ap.paperId);
+                                if (paper) {
+                                  setSelectedPaper(paper);
+                                  resetForm();
+                                }
+                              }} className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors">查看详情</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-2">
+                        <label className="text-sm font-medium text-slate-700">合作金额</label>
+                        <button onClick={() => setAuthorForm({...authorForm, cooperationAmounts: [...(authorForm.cooperationAmounts||[]), {amount:'', date:'', project:'', position:'', note:''}]})} className="text-sm px-3 py-2 bg-amber-600 text-white rounded flex items-center gap-1 hover:bg-amber-700 transition-colors">
+                          <Plus size={16} />添加
+                        </button>
+                      </div>
+                      {(!authorForm.cooperationAmounts || authorForm.cooperationAmounts.length === 0) ? (
+                        <div className="text-sm bg-slate-50 border border-slate-200 rounded-lg p-3 text-slate-600">暂无记录</div>
+                      ) : (
+                        <div className="space-y-3">
+                          {authorForm.cooperationAmounts.map((it, idx) => (
+                            <div key={idx} className="bg-amber-50 p-4 rounded-xl border border-amber-300">
+                              <div className="flex justify-between mb-3">
+                                <span className="text-sm font-bold text-amber-900">#{idx+1}</span>
+                                <button onClick={() => setAuthorForm({...authorForm, cooperationAmounts: authorForm.cooperationAmounts.filter((v,i) => i!==idx)})} className="text-red-600 hover:text-red-700"><Trash2 size={16} /></button>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-700 mb-1">项目</label>
+                                  <select value={it.project||''} onChange={e => {
+                                    const n = [...authorForm.cooperationAmounts];
+                                    n[idx] = {...n[idx], project: e.target.value};
+                                    setAuthorForm({...authorForm, cooperationAmounts: n});
+                                  }} className="w-full px-3 py-2 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    <option value="">选择</option>
+                                    {getFields().map(f => <option key={f} value={f}>{f}</option>)}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-700 mb-1">位置</label>
+                                  <select value={it.position||''} onChange={e => {
+                                    const n = [...authorForm.cooperationAmounts];
+                                    n[idx] = {...n[idx], position: e.target.value};
+                                    setAuthorForm({...authorForm, cooperationAmounts: n});
+                                  }} className="w-full px-3 py-2 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    <option value="">选择</option>
+                                    <option value="first">一作</option>
+                                    <option value="corresponding">通讯</option>
+                                    <option value="second">二作</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-700 mb-1">金额</label>
+                                  <input type="number" value={it.amount||''} onChange={e => {
+                                    const n = [...authorForm.cooperationAmounts];
+                                    n[idx] = {...n[idx], amount: e.target.value};
+                                    setAuthorForm({...authorForm, cooperationAmounts: n});
+                                  }} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-700 mb-1">日期</label>
+                                  <input type="date" value={it.date||''} onChange={e => {
+                                    const n = [...authorForm.cooperationAmounts];
+                                    n[idx] = {...n[idx], date: e.target.value};
+                                    setAuthorForm({...authorForm, cooperationAmounts: n});
+                                  }} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                </div>
+                                <div className="col-span-2">
+                                  <label className="block text-xs font-medium text-slate-700 mb-1">备注</label>
+                                  <input value={it.note||''} onChange={e => {
+                                    const n = [...authorForm.cooperationAmounts];
+                                    n[idx] = {...n[idx], note: e.target.value};
+                                    setAuthorForm({...authorForm, cooperationAmounts: n});
+                                  }} className="w-full px-3 py-2 border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          <div className="bg-gradient-to-r from-amber-100 to-amber-200 border-2 border-amber-400 rounded-xl p-4 text-center">
+                            <span className="text-sm font-medium text-amber-900">总金额：</span>
+                            <span className="text-2xl font-bold text-amber-900 ml-2">¥{calcTotal(authorForm.cooperationAmounts).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-3 pt-4 border-t border-slate-200">
+                      <button onClick={saveAuthor} disabled={loading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50">
+                        <Save size={20} />{editItem ? '保存修改' : '添加作者'}
+                      </button>
+                      <button onClick={resetForm} className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors">取消</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+  
+        <style>{`
+          @keyframes slide-in {
+            from {
+              transform: translateY(-20px);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
           }
-          to {
-            transform: translateY(0);
-            opacity: 1;
+          .animate-slide-in {
+            animation: slide-in 0.3s ease-out;
           }
-        }
-        .animate-slide-in {
-          animation: slide-in 0.3s ease-out;
-        }
-      `}</style>
-    </div>
-  );
-}
+        `}</style>
+      </div>
+    );
+  }
