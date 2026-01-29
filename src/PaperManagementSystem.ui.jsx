@@ -3,7 +3,7 @@ import { Plus, Edit2, Trash2, X, Save, FileText, Users, Search, Download, Upload
 import { createClient } from '@supabase/supabase-js';
 import Login from './Login';
 import LiteratureSearch from './LiteratureSearch';
-import EmpiricalGenerator from '../EmpiricalGenerator.jsx';
+import EmpiricalGenerator from './EmpiricalGenerator';
 
 const SUPABASE_URL = 'https://kulydhkpuodsboiufpbt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1bHlkaGtwdW9kc2JvaXVmcGJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0MDY3NzgsImV4cCI6MjA4NDk4Mjc3OH0.xhFglujFGxBSEe--rUYcsYE9sw6Lzi6FVJ9hpbcDPl0';
