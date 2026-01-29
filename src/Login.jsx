@@ -111,7 +111,6 @@ export default function Login({ onLoginSuccess }) {
         {/* 测试账号提示（可选，生产环境可删除） */}
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-xs text-blue-700 text-center">
-            💡 测试账号: admin@yce.com / adminxinchen
           </p>
         </div>
       </div>
