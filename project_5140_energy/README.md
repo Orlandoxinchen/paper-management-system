@@ -1,35 +1,61 @@
-# 5140 Midterm — Project Option 4: Energy Consumption Forecasting (Time Series)
+# 📊 Energy Consumption Forecasting — 5140 Project (Time Series)
 
-## 与 Midterm_Project_Starter 一致
+**Household electricity consumption: 7-day ahead forecasting with ARIMA, ETS, and Prophet.**
 
-- **数据**: Kaggle UCI household electric power consumption（分钟级 → 聚合为**日度**）
-- **预测变量**: `Global_active_power`（家庭总有功功率，kW）
-- **预测 horizon**: **1 周（7 天）** 提前预测
-- **模型**: ARIMA、ETS (Holt-Winters)、Prophet
-- **评估**: MAE、RMSE、MAPE；趋势与季节（日/周）分析
+---
 
-## 文件
+## 🔗 Quick Links (作业展示入口)
 
-- **energy_forecast.py** — 加载/聚合数据、EDA、拟合 ARIMA/ETS/Prophet、7 日预测、保存结果与图
-- **generate_report_docx.py** — 根据结果生成 Word 报告
-- **output/results.json**、**output/figures/** — 分析结果与图
-- **Energy_Consumption_Forecasting_Report.docx** — 最终报告（运行后生成）
+| 内容 | 链接 |
+|------|------|
+| **📄 完整报告（表格+结论，推荐直接点开）** | [**FORECAST_REPORT.md**](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/output/FORECAST_REPORT.md) |
+| **📁 本作业目录** | [project_5140_energy](https://github.com/Orlandoxinchen/paper-management-system/tree/main/project_5140_energy) |
+| **📂 仓库首页** | [paper-management-system](https://github.com/Orlandoxinchen/paper-management-system) |
+| **📈 分解图** | [fig1_series_decomposition.png](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/output/figures/fig1_series_decomposition.png) |
+| **📈 ACF/PACF** | [fig2_acf_pacf.png](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/output/figures/fig2_acf_pacf.png) |
+| **📈 预测对比图** | [fig3_forecasts.png](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/output/figures/fig3_forecasts.png) |
+| **📝 Word 报告** | [Energy_Consumption_Forecasting_Report.docx](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/Energy_Consumption_Forecasting_Report.docx) |
 
-## 数据来源
+---
 
-- UCI: https://www.kaggle.com/datasets/uciml/electric-power-consumption-data-set  
-- 备选（小时）: https://www.kaggle.com/datasets/robikscube/hourly-energy-consumption  
+## 📋 Overview
 
-UCI 数据格式：`Date;Time;Global_active_power;...`（缺失为 `?`）。脚本会识别并聚合成日度。
+- **Data:** UCI Household Electric Power Consumption (minute → **daily**)
+- **Target:** `Global_active_power` (kW), **7-day ahead** forecast
+- **Models:** ARIMA, ETS (Holt–Winters), Prophet
+- **Metrics:** MAE, RMSE, MAPE; trend & seasonal (weekly) analysis
 
-## 运行
+---
+
+## 📂 File Structure
+
+```
+project_5140_energy/
+├── README.md                    ← 本说明（含展示链接）
+├── energy_forecast.py           ← 主脚本：数据、建模、预测、出图
+├── generate_report_docx.py      ← 生成 Word 报告
+├── requirements.txt
+├── Energy_Consumption_Forecasting_Report.docx
+└── output/
+    ├── FORECAST_REPORT.md       ← ⭐ 表格+结论（GitHub 直接预览）
+    ├── evaluation_table.csv
+    ├── results.json
+    └── figures/
+        ├── fig1_series_decomposition.png
+        ├── fig2_acf_pacf.png
+        └── fig3_forecasts.png
+```
+
+---
+
+## 🚀 How to Run
 
 ```bash
 cd project_5140_energy
 pip install -r requirements.txt
 ```
 
-**使用自己的数据**（下载好的 UCI 或小时级 CSV）：
+**With your own UCI data:**
 
 ```bash
 export ENERGY_DATA="/path/to/household_power_consumption.txt"
@@ -37,6 +63,21 @@ python energy_forecast.py
 python generate_report_docx.py
 ```
 
-**不设置 `ENERGY_DATA`**：脚本使用内置生成的 2 年日度合成数据，可直接跑通并出报告。
+**Without `ENERGY_DATA`:** script uses built-in synthetic daily data so the pipeline runs end-to-end.
 
-报告路径：**Energy_Consumption_Forecasting_Report.docx**
+---
+
+## 📊 Results Summary
+
+- **Table 1A/1B:** 7-day forecasts and absolute errors (vs ARIMA ratios).
+- **Table 2A/2B:** MAE, RMSE, MAPE and relative performance.
+- **Conclusion:** ARIMA and ETS perform best for this 7-day horizon; Prophet over-extrapolates trend.
+
+👉 Full tables and discussion: **[FORECAST_REPORT.md](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/output/FORECAST_REPORT.md)**
+
+---
+
+## 📎 Data Source
+
+- [UCI Electric Power Consumption (Kaggle)](https://www.kaggle.com/datasets/uciml/electric-power-consumption-data-set)  
+- Format: `Date;Time;Global_active_power;...` (missing = `?`). Script resamples to daily mean.
