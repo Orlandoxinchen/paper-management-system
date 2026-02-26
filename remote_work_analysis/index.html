@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>远程办公数据 — 分析脚本使用说明</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #333; }
+    p { margin: 0.5rem 0; }
+    a { color: #0969da; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .card { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px; padding: 14px 16px; margin: 12px 0; }
+    code { background: #eaeef2; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px 16px; overflow-x: auto; font-size: 0.9rem; }
+    ul { margin: 0.5rem 0; padding-left: 1.25rem; }
+    .muted { color: #656d76; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>远程办公数据 — 分析脚本使用说明</h1>
+  <p class="muted">从 <strong>远程办公数据.xlsx</strong> 重算 Table 2～Table 8 与 Figure1，单文件复制即跑。</p>
+
+  <div class="card">
+    <h2>1. 下载脚本（任选一种）</h2>
+    <ul>
+      <li><a href="https://raw.githubusercontent.com/Orlandoxinchen/paper-management-system/main/remote_work_analysis/remote_work_full.py" target="_blank" rel="noopener">直接下载 remote_work_full.py（推荐）</a> → 浏览器会打开代码页，右键「另存为」保存为 <code>remote_work_full.py</code></li>
+      <li>或打开 <a href="https://github.com/Orlandoxinchen/paper-management-system/blob/main/remote_work_analysis/remote_work_full.py" target="_blank" rel="noopener">仓库里的脚本</a> → 点 Raw → 另存为</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>2. 准备数据</h2>
+    <p>把 <strong>远程办公数据.xlsx</strong> 放在<strong>桌面</strong>。</p>
+    <p>例如 Mac 路径：<code>/Users/DoDo/Desktop/远程办公数据.xlsx</code></p>
+    <p class="muted">脚本会自动在「当前用户桌面」或 <code>/Users/DoDo/Desktop</code> 下查找该文件；结果也会输出到桌面。</p>
+  </div>
+
+  <div class="card">
+    <h2>3. 安装依赖</h2>
+    <p>打开终端，执行：</p>
+    <pre>pip3 install pandas numpy scipy statsmodels matplotlib openpyxl factor_analyzer</pre>
+    <p class="muted">若提示 <code>python: command not found</code>，请用 <code>python3</code> 和 <code>pip3</code>；先运行 <code>python3 --version</code> 确认已安装。</p>
+  </div>
+
+  <div class="card">
+    <h2>4. 运行脚本</h2>
+    <p>在终端进入脚本所在目录（若在桌面）：</p>
+    <pre>cd ~/Desktop
+python3 remote_work_full.py</pre>
+    <p>运行时会先显示「数据文件」「输出目录」；Bootstrap 阶段会提示「约 1000 次，请稍等」，属正常现象。</p>
+  </div>
+
+  <h2>输出文件（默认在桌面）</h2>
+  <ul>
+    <li>Table2_reliability_validity.csv</li>
+    <li>Table3_pearson_correlation.csv</li>
+    <li>Table4_chain_mediation_paths.csv</li>
+    <li>Table5_bootstrap_indirect_effect.csv</li>
+    <li>Table6_sem_results.csv</li>
+    <li>Table8_multigroup_male.csv</li>
+    <li>Figure1_Bootstrap_BW.png</li>
+  </ul>
+
+  <p class="muted" style="margin-top: 2rem;">本页随仓库更新。仓库：<a href="https://github.com/Orlandoxinchen/paper-management-system/tree/main/remote_work_analysis" target="_blank" rel="noopener">paper-management-system / remote_work_analysis</a></p>
+</body>
+</html>
