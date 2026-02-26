@@ -6,15 +6,16 @@
 
 ## 🔗 Quick Links (作业展示入口)
 
-| 内容 | 链接 |
+| 内容 | 链接（相对路径，推送到 GitHub 后自动生效） |
 |------|------|
-| **📄 完整报告（表格+结论，推荐直接点开）** | [**FORECAST_REPORT.md**](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/output/FORECAST_REPORT.md) |
-| **📁 本作业目录** | [project_5140_energy](https://github.com/Orlandoxinchen/paper-management-system/tree/main/project_5140_energy) |
-| **📂 仓库首页** | [paper-management-system](https://github.com/Orlandoxinchen/paper-management-system) |
-| **📈 分解图** | [fig1_series_decomposition.png](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/output/figures/fig1_series_decomposition.png) |
-| **📈 ACF/PACF** | [fig2_acf_pacf.png](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/output/figures/fig2_acf_pacf.png) |
-| **📈 预测对比图** | [fig3_forecasts.png](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/output/figures/fig3_forecasts.png) |
-| **📝 Word 报告** | [Energy_Consumption_Forecasting_Report.docx](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/Energy_Consumption_Forecasting_Report.docx) |
+| **📓 完整 Notebook（数据清洗+模型理论+ACF/PACF+预测，推荐）** | [**Energy_Forecasting_Notebook.md**](output/Energy_Forecasting_Notebook.md) |
+| **📄 报告（仅表格+结论）** | [**FORECAST_REPORT.md**](output/FORECAST_REPORT.md) |
+| **📁 本作业目录** | [project_5140_energy](.) |
+| **📂 仓库首页** | [仓库根目录](../) |
+| **📈 分解图** | [fig1_series_decomposition.png](output/figures/fig1_series_decomposition.png) |
+| **📈 ACF/PACF** | [fig2_acf_pacf.png](output/figures/fig2_acf_pacf.png) |
+| **📈 预测对比图** | [fig3_forecasts.png](output/figures/fig3_forecasts.png) |
+| **📝 Word 报告** | [Energy_Consumption_Forecasting_Report.docx](Energy_Consumption_Forecasting_Report.docx) |
 
 ---
 
@@ -37,7 +38,8 @@ project_5140_energy/
 ├── requirements.txt
 ├── Energy_Consumption_Forecasting_Report.docx
 └── output/
-    ├── FORECAST_REPORT.md       ← ⭐ 表格+结论（GitHub 直接预览）
+    ├── Energy_Forecasting_Notebook.md  ← ⭐ 完整 Notebook（清洗+理论+ACF/PACF+预测）
+    ├── FORECAST_REPORT.md              ← 表格+结论（GitHub 直接预览）
     ├── evaluation_table.csv
     ├── results.json
     └── figures/
@@ -73,7 +75,7 @@ python generate_report_docx.py
 - **Table 2A/2B:** MAE, RMSE, MAPE and relative performance.
 - **Conclusion:** ARIMA and ETS perform best for this 7-day horizon; Prophet over-extrapolates trend.
 
-👉 Full tables and discussion: **[FORECAST_REPORT.md](https://github.com/Orlandoxinchen/paper-management-system/blob/main/project_5140_energy/output/FORECAST_REPORT.md)**
+👉 Full tables and discussion: **[FORECAST_REPORT.md](output/FORECAST_REPORT.md)**
 
 ---
 
