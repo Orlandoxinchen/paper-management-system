@@ -2,6 +2,25 @@
 
 用于从 **远程办公数据.xlsx** 重算论文中的 Table 2～Table 8 以及 3 张黑白图，便于复现与分享。
 
+---
+
+## 朋友打开链接 404 怎么办？
+
+- **原因**：仓库是**私有**时，别人未登录或没权限会看到 404。
+- **办法 1**：把仓库改为公开  
+  GitHub 仓库页 → **Settings** → **General** → **Danger Zone** → **Change repository visibility** → 选 **Public**。
+- **办法 2**：不依赖仓库，直接发**单文件**给朋友  
+  使用本目录下的 **`remote_work_full.py`**（单文件完整代码）：
+  1. 你把 `remote_work_full.py` 发给她（微信/邮件/网盘）。
+  2. 她保存到电脑，把 **远程办公数据.xlsx** 放桌面。
+  3. 安装依赖：`pip install pandas numpy scipy statsmodels matplotlib openpyxl factor_analyzer`
+  4. 运行：`python remote_work_full.py`  
+  输出会出现在桌面（或脚本里改 `OUT_DIR`）。
+- **办法 3**：你建一个**公开 Gist**，她就能用链接打开、复制代码  
+  打开 https://gist.github.com → 新建 → 把 `remote_work_full.py` 内容粘贴进去 → 创建 public gist → 把生成的链接发给她。
+
+---
+
 ## 环境
 
 - Python 3.8+
@@ -27,6 +46,7 @@ pip install pandas numpy scipy statsmodels matplotlib openpyxl factor_analyzer
 
 | 文件 | 内容 |
 |------|------|
+| **remote_work_full.py** | 单文件完整版：Table 2～8 + Figure1，复制即跑，可直接发朋友 |
 | **rerun_tables234.py** | Table 2（Cronbach’s α, KMO, Bartlett）、Table 3（Pearson 相关+显著性星号）、Table 4（链式中介路径系数） |
 | **rerun_tables_5_6_8_and_figs_bw.py** | Table 5（Bootstrap 间接效应）、Table 6（SEM 路径 β/t/p/R²）、Table 8（男性子组）；Figure 1～3（Bootstrap 分布、SEM 路径图、男女路径对比） |
 
