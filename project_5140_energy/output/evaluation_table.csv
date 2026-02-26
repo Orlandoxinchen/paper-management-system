@@ -1,0 +1,4 @@
+Model,RMSE,MAE,MAPE (%)
+"ARIMA(1,1,1)",0.1116,0.0976,6.972
+ETS (Holt-Winters),0.0272,0.0216,1.4465
+Prophet,,,

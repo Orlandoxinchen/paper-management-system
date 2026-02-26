@@ -1,0 +1,19 @@
+{
+  "n_obs": 730,
+  "n_train": 723,
+  "n_test": 7,
+  "forecast_horizon_days": 7,
+  "adf_statistic": -1.3422,
+  "adf_pvalue": 0.6096,
+  "train_mean": 1.3079,
+  "train_std": 0.1436,
+  "arima_rmse": 0.1116,
+  "arima_mae": 0.0976,
+  "arima_mape": 6.972,
+  "ets_rmse": 0.0272,
+  "ets_mae": 0.0216,
+  "ets_mape": 1.4465,
+  "prophet_rmse": null,
+  "prophet_mae": null,
+  "prophet_mape": null
+}
