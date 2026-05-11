@@ -1,22 +1,53 @@
 import React, { useState } from 'react';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 
-// 🔐 固定的账号密码列表（在这里添加账号）
-const VALID_ACCOUNTS = [
-  { email: 'admin@yce.com', password: 'adminxinchen' },
-  { email: 'user1@yce.com', password: 'user1231' },
-  { email: 'user2@yce.com', password: 'user2342' },
-  // 👆 在这里添加更多账号...
-];
+function getConfiguredAccounts() {
+  const accountsJson = import.meta.env.VITE_LOGIN_ACCOUNTS;
+
+  if (accountsJson) {
+    try {
+      const parsed = JSON.parse(accountsJson);
+
+      if (Array.isArray(parsed)) {
+        return parsed.filter(
+          (account) =>
+            typeof account?.email === 'string' &&
+            account.email.trim() &&
+            typeof account?.password === 'string' &&
+            account.password.trim()
+        );
+      }
+    } catch (error) {
+      console.error('VITE_LOGIN_ACCOUNTS 配置格式错误:', error);
+    }
+  }
+
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL?.trim();
+  const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD?.trim();
+
+  if (adminEmail && adminPassword) {
+    return [{ email: adminEmail, password: adminPassword }];
+  }
+
+  return [];
+}
+
+const VALID_ACCOUNTS = getConfiguredAccounts();
 
 export default function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const loginConfigured = VALID_ACCOUNTS.length > 0;
 
   const handleLogin = (e) => {
     e.preventDefault();
     setError('');
+
+    if (!loginConfigured) {
+      setError('系统尚未配置登录账号，请先在 Vercel 环境变量中设置登录信息。');
+      return;
+    }
 
     // 验证账号密码
     const validAccount = VALID_ACCOUNTS.find(
@@ -94,6 +125,7 @@ export default function Login({ onLoginSuccess }) {
 
             <button
               type="submit"
+              disabled={!loginConfigured}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg font-medium"
             >
               <LogIn size={20} />
@@ -107,13 +139,7 @@ export default function Login({ onLoginSuccess }) {
             </p>
           </div>
         </div>
-
-        {/* 测试账号提示（可选，生产环境可删除） */}
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-xs text-blue-700 text-center">
-          </p>
-        </div>
       </div>
     </div>
   );
-} 
+}
