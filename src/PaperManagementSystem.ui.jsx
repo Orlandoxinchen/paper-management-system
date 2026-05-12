@@ -335,12 +335,37 @@ export default function PaperManagementSystem() {
     setShowModal(false);
   };
 
+  const getPdfSlotMeta = (fileData) => {
+    const fileName = fileData?.name?.toLowerCase() || '';
+    const isPyFile = fileName.endsWith('.py');
+
+    return isPyFile
+      ? {
+          shortLabel: '🐍 Py',
+          cardTitle: 'Py',
+          uploadLabel: '+ 上传Py',
+          colorClasses: 'bg-amber-100 text-amber-700',
+          cardClasses: 'bg-amber-50 border border-amber-200',
+          iconClasses: 'bg-amber-100',
+          buttonClasses: 'bg-amber-600 hover:bg-amber-700',
+        }
+      : {
+          shortLabel: '📕 PDF',
+          cardTitle: 'PDF',
+          uploadLabel: '+ 上传PDF',
+          colorClasses: 'bg-red-100 text-red-700',
+          cardClasses: 'bg-red-50 border border-red-200',
+          iconClasses: 'bg-red-100',
+          buttonClasses: 'bg-red-600 hover:bg-red-700',
+        };
+  };
+
   const handleFileUpload = (e, fileType) => {
     const file = e.target.files[0];
     if (!file) return;
     const validTypes = {
       word: ['.doc', '.docx', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-      pdf: ['.pdf', 'application/pdf'],
+      pdf: ['.py', 'text/x-python', 'text/plain', 'application/x-python-code'],
       excel: ['.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
     };
     const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
@@ -348,7 +373,7 @@ export default function PaperManagementSystem() {
       type.startsWith('.') ? fileExtension === type : file.type === type
     );
     if (!isValidType) {
-      notify(`请上传正确的${fileType === 'word' ? 'Word' : fileType === 'pdf' ? 'PDF' : 'Excel'}文件`, 'error');
+      notify(`请上传正确的${fileType === 'word' ? 'Word' : fileType === 'pdf' ? 'Py' : 'Excel'}文件`, 'error');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -877,7 +902,11 @@ export default function PaperManagementSystem() {
                     {p.files && (p.files.word || p.files.pdf || p.files.excel) && (
                       <div className="pt-2 border-t border-slate-100 flex gap-1">
                         {p.files.word && <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">📄 Word</span>}
-                        {p.files.pdf && <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded">📕 PDF</span>}
+                        {p.files.pdf && (
+                          <span className={`px-2 py-1 text-xs rounded ${getPdfSlotMeta(p.files.pdf).colorClasses}`}>
+                            {getPdfSlotMeta(p.files.pdf).shortLabel}
+                          </span>
+                        )}
                         {p.files.excel && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">📊 Excel</span>}
                       </div>
                     )}
@@ -1227,13 +1256,15 @@ export default function PaperManagementSystem() {
                       </div>
                     )}
                     {selectedPaper.files.pdf && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className={`${getPdfSlotMeta(selectedPaper.files.pdf).cardClasses} rounded-lg p-3`}>
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center">📕</div>
-                          <span className="text-sm font-medium text-red-900">PDF</span>
+                          <div className={`w-8 h-8 ${getPdfSlotMeta(selectedPaper.files.pdf).iconClasses} rounded flex items-center justify-center`}>
+                            {selectedPaper.files.pdf.name?.toLowerCase().endsWith('.py') ? '🐍' : '📕'}
+                          </div>
+                          <span className="text-sm font-medium text-slate-900">{getPdfSlotMeta(selectedPaper.files.pdf).cardTitle}</span>
                         </div>
                         <div className="text-xs text-slate-600 truncate mb-2" title={selectedPaper.files.pdf.name}>{selectedPaper.files.pdf.name}</div>
-                        <button onClick={() => handleFileDownload(selectedPaper.files.pdf)} className="w-full px-3 py-2 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors">下载文件</button>
+                        <button onClick={() => handleFileDownload(selectedPaper.files.pdf)} className={`w-full px-3 py-2 text-white rounded text-xs transition-colors ${getPdfSlotMeta(selectedPaper.files.pdf).buttonClasses}`}>下载文件</button>
                       </div>
                     )}
                     {selectedPaper.files.excel && (
@@ -1484,22 +1515,26 @@ export default function PaperManagementSystem() {
                       </div>
                       <div className="bg-white border border-slate-200 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 bg-red-100 rounded flex items-center justify-center text-lg">📕</div>
-                          <span className="text-sm font-medium text-slate-700">PDF</span>
+                          <div className={`w-8 h-8 ${getPdfSlotMeta(paperForm.files?.pdf).iconClasses} rounded flex items-center justify-center text-lg`}>
+                            {paperForm.files?.pdf?.name?.toLowerCase().endsWith('.py') ? '🐍' : '📕'}
+                          </div>
+                          <span className="text-sm font-medium text-slate-700">
+                            {getPdfSlotMeta(paperForm.files?.pdf).cardTitle}
+                          </span>
                         </div>
                         {paperForm.files?.pdf ? (
                           <div className="space-y-2">
                             <div className="text-xs text-slate-600 truncate" title={paperForm.files.pdf.name}>{paperForm.files.pdf.name}</div>
                             <div className="text-xs text-slate-500">{(paperForm.files.pdf.size / 1024).toFixed(1)} KB</div>
                             <div className="flex gap-2">
-                              <button type="button" onClick={() => handleFileDownload(paperForm.files.pdf)} className="flex-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors">下载</button>
+                              <button type="button" onClick={() => handleFileDownload(paperForm.files.pdf)} className="flex-1 px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs hover:bg-amber-200 transition-colors">下载</button>
                               <button type="button" onClick={() => handleFileDelete('pdf')} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors">删除</button>
                             </div>
                           </div>
                         ) : (
                           <label className="block">
-                            <input type="file" accept=".pdf" onChange={(e) => handleFileUpload(e, 'pdf')} className="hidden" />
-                            <div className="px-3 py-2 bg-red-50 text-red-600 rounded text-xs text-center cursor-pointer hover:bg-red-100 transition-colors border border-red-200">+ 上传PDF</div>
+                            <input type="file" accept=".py,text/x-python,text/plain,application/x-python-code" onChange={(e) => handleFileUpload(e, 'pdf')} className="hidden" />
+                            <div className="px-3 py-2 bg-amber-50 text-amber-700 rounded text-xs text-center cursor-pointer hover:bg-amber-100 transition-colors border border-amber-200">+ 上传Py</div>
                           </label>
                         )}
                       </div>
@@ -1525,7 +1560,7 @@ export default function PaperManagementSystem() {
                         )}
                       </div>
                     </div>
-                    <div className="mt-3 text-xs text-slate-500">💡 提示：支持上传Word、PDF、Excel文件，单个文件最大10MB，新上传的文件会自动覆盖旧文件</div>
+                    <div className="mt-3 text-xs text-slate-500">💡 提示：当前支持上传Word、Py、Excel文件，单个文件最大10MB；Py 文件占用原 PDF 槽位，历史 PDF 仍可继续下载</div>
                   </div>
                   <div className="flex gap-3 pt-4 border-t border-slate-200">
                     <button onClick={savePaper} disabled={loading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50">
