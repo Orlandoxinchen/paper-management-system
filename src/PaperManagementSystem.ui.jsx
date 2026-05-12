@@ -343,7 +343,7 @@ export default function PaperManagementSystem() {
       ? {
           shortLabel: '🐍 Py',
           cardTitle: 'Py',
-          uploadLabel: '+ 上传Py',
+          uploadLabel: '+ 上传Py/PDF',
           colorClasses: 'bg-amber-100 text-amber-700',
           cardClasses: 'bg-amber-50 border border-amber-200',
           iconClasses: 'bg-amber-100',
@@ -352,7 +352,7 @@ export default function PaperManagementSystem() {
       : {
           shortLabel: '📕 PDF',
           cardTitle: 'PDF',
-          uploadLabel: '+ 上传PDF',
+          uploadLabel: '+ 上传Py/PDF',
           colorClasses: 'bg-red-100 text-red-700',
           cardClasses: 'bg-red-50 border border-red-200',
           iconClasses: 'bg-red-100',
@@ -365,7 +365,7 @@ export default function PaperManagementSystem() {
     if (!file) return;
     const validTypes = {
       word: ['.doc', '.docx', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-      pdf: ['.py', 'text/x-python', 'text/plain', 'application/x-python-code'],
+      pdf: ['.py', '.pdf', 'text/x-python', 'text/plain', 'application/x-python-code', 'application/pdf'],
       excel: ['.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
     };
     const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
@@ -373,7 +373,7 @@ export default function PaperManagementSystem() {
       type.startsWith('.') ? fileExtension === type : file.type === type
     );
     if (!isValidType) {
-      notify(`请上传正确的${fileType === 'word' ? 'Word' : fileType === 'pdf' ? 'Py' : 'Excel'}文件`, 'error');
+      notify(`请上传正确的${fileType === 'word' ? 'Word' : fileType === 'pdf' ? 'Py或PDF' : 'Excel'}文件`, 'error');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -1533,8 +1533,8 @@ export default function PaperManagementSystem() {
                           </div>
                         ) : (
                           <label className="block">
-                            <input type="file" accept=".py,text/x-python,text/plain,application/x-python-code" onChange={(e) => handleFileUpload(e, 'pdf')} className="hidden" />
-                            <div className="px-3 py-2 bg-amber-50 text-amber-700 rounded text-xs text-center cursor-pointer hover:bg-amber-100 transition-colors border border-amber-200">+ 上传Py</div>
+                            <input type="file" accept=".py,.pdf,text/x-python,text/plain,application/x-python-code,application/pdf" onChange={(e) => handleFileUpload(e, 'pdf')} className="hidden" />
+                            <div className="px-3 py-2 bg-amber-50 text-amber-700 rounded text-xs text-center cursor-pointer hover:bg-amber-100 transition-colors border border-amber-200">+ 上传Py/PDF</div>
                           </label>
                         )}
                       </div>
@@ -1560,7 +1560,7 @@ export default function PaperManagementSystem() {
                         )}
                       </div>
                     </div>
-                    <div className="mt-3 text-xs text-slate-500">💡 提示：当前支持上传Word、Py、Excel文件，单个文件最大10MB；Py 文件占用原 PDF 槽位，历史 PDF 仍可继续下载</div>
+                    <div className="mt-3 text-xs text-slate-500">💡 提示：当前支持上传Word、Py/PDF、Excel文件，单个文件最大10MB；Py 与 PDF 共用同一槽位，历史 PDF 仍可继续下载</div>
                   </div>
                   <div className="flex gap-3 pt-4 border-t border-slate-200">
                     <button onClick={savePaper} disabled={loading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50">
