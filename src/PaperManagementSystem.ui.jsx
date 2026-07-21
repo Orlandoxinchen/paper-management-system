@@ -59,6 +59,7 @@ export default function PaperManagementSystem() {
   };
 
   const statusOpts = [
+    { v: 'draft_pending_review', l: '草稿/待审核', c: 'bg-cyan-100 text-cyan-800', icon: '📄' },
     { v: 'preparing', l: '准备中', c: 'bg-slate-100 text-slate-700', icon: '📝' },
     { v: 'submitted', l: '已投稿', c: 'bg-blue-100 text-blue-700', icon: '📤' },
     { v: 'under_review', l: '审稿中', c: 'bg-amber-100 text-amber-700', icon: '🔍' },
