@@ -374,7 +374,7 @@ export default function PaperManagementSystem() {
       type.startsWith('.') ? fileExtension === type : file.type === type
     );
     if (!isValidType) {
-      notify(`请上传正确的${fileType === 'word' ? 'Word' : fileType === 'pdf' ? 'Py或PDF' : 'Excel'}文件`, 'error');
+      notify(`请上传正确的${fileType === 'word' ? 'Word' : fileType === 'pdf' ? 'Py或PDF' : 'item-level raw data Excel'}文件`, 'error');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -908,7 +908,7 @@ export default function PaperManagementSystem() {
                             {getPdfSlotMeta(p.files.pdf).shortLabel}
                           </span>
                         )}
-                        {p.files.excel && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">📊 Excel</span>}
+                        {p.files.excel && <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">📊 Item-level Raw Data</span>}
                       </div>
                     )}
                   </div>
@@ -1272,7 +1272,7 @@ export default function PaperManagementSystem() {
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center">📊</div>
-                          <span className="text-sm font-medium text-green-900">Excel</span>
+                          <span className="text-sm font-medium text-green-900">Item-level Raw Data (XLSX)</span>
                         </div>
                         <div className="text-xs text-slate-600 truncate mb-2" title={selectedPaper.files.excel.name}>{selectedPaper.files.excel.name}</div>
                         <button onClick={() => handleFileDownload(selectedPaper.files.excel)} className="w-full px-3 py-2 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors">下载文件</button>
@@ -1542,7 +1542,7 @@ export default function PaperManagementSystem() {
                       <div className="bg-white border border-slate-200 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-8 h-8 bg-green-100 rounded flex items-center justify-center text-lg">📊</div>
-                          <span className="text-sm font-medium text-slate-700">Excel</span>
+                          <span className="text-sm font-medium text-slate-700">Item-level Raw Data (XLSX)</span>
                         </div>
                         {paperForm.files?.excel ? (
                           <div className="space-y-2">
@@ -1556,12 +1556,12 @@ export default function PaperManagementSystem() {
                         ) : (
                           <label className="block">
                             <input type="file" accept=".xls,.xlsx" onChange={(e) => handleFileUpload(e, 'excel')} className="hidden" />
-                            <div className="px-3 py-2 bg-green-50 text-green-600 rounded text-xs text-center cursor-pointer hover:bg-green-100 transition-colors border border-green-200">+ 上传Excel</div>
+                            <div className="px-3 py-2 bg-green-50 text-green-600 rounded text-xs text-center cursor-pointer hover:bg-green-100 transition-colors border border-green-200">+ 上传item-level raw data</div>
                           </label>
                         )}
                       </div>
                     </div>
-                    <div className="mt-3 text-xs text-slate-500">💡 提示：当前支持上传Word、Py/PDF、Excel文件，单个文件最大10MB；Py 与 PDF 共用同一槽位，历史 PDF 仍可继续下载</div>
+                    <div className="mt-3 text-xs text-slate-500">💡 提示：当前支持上传Word、Py/PDF、item-level raw data（XLSX），单个文件最大10MB；Py 与 PDF 共用同一槽位，历史 PDF 仍可继续下载</div>
                   </div>
                   <div className="flex gap-3 pt-4 border-t border-slate-200">
                     <button onClick={savePaper} disabled={loading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50">
