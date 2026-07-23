@@ -9,6 +9,44 @@ const SUPABASE_URL = 'https://kulydhkpuodsboiufpbt.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1bHlkaGtwdW9kc2JvaXVmcGJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0MDY3NzgsImV4cCI6MjA4NDk4Mjc3OH0.xhFglujFGxBSEe--rUYcsYE9sw6Lzi6FVJ9hpbcDPl0';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_TIMEOUT_MS = 60000;
+const SUPABASE_RETRY_COUNT = 3;
+const PAPER_PAGE_SIZE = 50;
+const PAPER_LIST_COLUMNS = [
+  'id', 'serial_number', 'title_cn', 'title_en', 'status',
+  'first_author', 'corresponding_author', 'second_author', 'journal',
+  'submission_date', 'submission_link', 'submission_email',
+  'submission_password', 'contact_email', 'contact_password',
+  'status_date', 'notes'
+].join(',');
+
+const wait = (milliseconds) => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+async function runSupabaseQuery(queryFactory, label) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= SUPABASE_RETRY_COUNT; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), SUPABASE_TIMEOUT_MS);
+
+    try {
+      const result = await queryFactory(controller.signal);
+      if (!result.error) return result;
+      lastError = result.error;
+    } catch (error) {
+      lastError = error;
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (attempt < SUPABASE_RETRY_COUNT) {
+      await wait(700 * attempt);
+    }
+  }
+
+  const message = lastError?.message || '请求失败';
+  throw new Error(`${label}失败：${message}`);
+}
 
 export default function PaperManagementSystem() {
   const [user, setUser] = useState(null);
@@ -26,6 +64,7 @@ export default function PaperManagementSystem() {
   const [modalType, setModalType] = useState('paper');
   const [editItem, setEditItem] = useState(null);
   const [selectedPaper, setSelectedPaper] = useState(null);
+  const [loadingPaperFiles, setLoadingPaperFiles] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [notification, setNotification] = useState(null);
   const [customTodoForm, setCustomTodoForm] = useState({ name: '', note: '' });
@@ -119,21 +158,71 @@ export default function PaperManagementSystem() {
   };
 
   const loadPapers = async () => {
-    const { data, error } = await supabase.from('papers').select('*').order('serial_number', { ascending: true });
-    if (error) {
-      console.error('加载论文失败:', error);
-      return;
+    const allRows = [];
+    let page = 0;
+
+    while (true) {
+      const from = page * PAPER_PAGE_SIZE;
+      const to = from + PAPER_PAGE_SIZE - 1;
+      const { data } = await runSupabaseQuery(
+        signal => supabase
+          .from('papers')
+          .select(PAPER_LIST_COLUMNS)
+          .order('serial_number', { ascending: true })
+          .range(from, to)
+          .abortSignal(signal),
+        `加载论文列表第 ${page + 1} 页`
+      );
+      const rows = data || [];
+      allRows.push(...rows);
+      if (rows.length < PAPER_PAGE_SIZE) break;
+      page += 1;
     }
-    const formattedPapers = data.map(p => ({
+
+    const formattedPapers = allRows.map(p => ({
       id: p.id, serialNumber: p.serial_number, titleCN: p.title_cn, titleEN: p.title_en,
       status: p.status, firstAuthor: p.first_author, correspondingAuthor: p.corresponding_author,
       secondAuthor: p.second_author, journal: p.journal, submissionDate: p.submission_date,
       submissionLink: p.submission_link, submissionEmail: p.submission_email,
       submissionPassword: p.submission_password, contactEmail: p.contact_email,
       contactPassword: p.contact_password, statusDate: p.status_date, notes: p.notes,
-      files: { word: p.file_word, pdf: p.file_pdf, excel: p.file_excel }
+      files: null, filesLoaded: false
     }));
     setPapers(formattedPapers);
+  };
+
+  const openPaperDetails = async (paper) => {
+    setSelectedPaper(paper);
+    if (paper.filesLoaded) return;
+
+    setLoadingPaperFiles(true);
+    try {
+      const { data } = await runSupabaseQuery(
+        signal => supabase
+          .from('papers')
+          .select('file_word,file_pdf,file_excel')
+          .eq('id', paper.id)
+          .single()
+          .abortSignal(signal),
+        '加载论文附件'
+      );
+      const hydratedPaper = {
+        ...paper,
+        files: {
+          word: data?.file_word || null,
+          pdf: data?.file_pdf || null,
+          excel: data?.file_excel || null
+        },
+        filesLoaded: true
+      };
+      setSelectedPaper(current => current?.id === paper.id ? hydratedPaper : current);
+      setPapers(current => current.map(item => item.id === paper.id ? hydratedPaper : item));
+    } catch (error) {
+      console.error('加载论文附件失败:', error);
+      notify(error.message || '附件加载失败', 'error');
+    } finally {
+      setLoadingPaperFiles(false);
+    }
   };
 
   const loadAuthors = async () => {
@@ -876,7 +965,7 @@ export default function PaperManagementSystem() {
               const subDays = p.submissionDate ? calcDays(p.submissionDate) : null;
               const statusInfo = statusOpts.find(s => s.v === p.status);
               return (
-                <div key={p.id} onClick={() => setSelectedPaper(p)} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group">
+                <div key={p.id} onClick={() => openPaperDetails(p)} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group">
                   <div className="flex gap-4 mb-4">
                     <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-lg group-hover:scale-105 transition-transform">
                       {p.serialNumber || '?'}
@@ -1036,7 +1125,7 @@ export default function PaperManagementSystem() {
                         </p>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <button onClick={() => { const paper = papers.find(p => p.id === todo.paperId); if (paper) setSelectedPaper(paper); }} className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg border border-slate-200 transition-colors text-sm font-medium whitespace-nowrap">查看详情</button>
+                        <button onClick={() => { const paper = papers.find(p => p.id === todo.paperId); if (paper) openPaperDetails(paper); }} className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg border border-slate-200 transition-colors text-sm font-medium whitespace-nowrap">查看详情</button>
                         {(todo.type === 'preparing' || todo.type === 'review' || todo.type === 'final') && (
                           <button onClick={() => handleTodo(todo.id, 'tomorrow')} className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors text-sm font-medium whitespace-nowrap">明天提醒</button>
                         )}
@@ -1170,8 +1259,12 @@ export default function PaperManagementSystem() {
                     {statusOpts.map(s => <option key={s.v} value={s.v}>{s.icon} {s.l}</option>)}
                   </select>
                 </div>
-                <button onClick={() => { setPaperForm(selectedPaper); setEditItem(selectedPaper); setModalType('paper'); setShowModal(true); setSelectedPaper(null); }} className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm">
-                  <Edit2 size={18} />编辑论文
+                <button
+                  disabled={loadingPaperFiles || !selectedPaper.filesLoaded}
+                  onClick={() => { setPaperForm(selectedPaper); setEditItem(selectedPaper); setModalType('paper'); setShowModal(true); setSelectedPaper(null); }}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 disabled:cursor-wait text-white rounded-lg transition-colors shadow-sm"
+                >
+                  <Edit2 size={18} />{loadingPaperFiles ? '附件加载中' : '编辑论文'}
                 </button>
               </div>
               <div className="grid md:grid-cols-3 gap-4">
@@ -1242,6 +1335,11 @@ export default function PaperManagementSystem() {
                   <div className="px-4 py-3 bg-slate-50 rounded-lg text-slate-700 border border-slate-200 whitespace-pre-wrap">{selectedPaper.notes}</div>
                 </div>
               )}
+              {loadingPaperFiles && (
+                <div className="px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                  正在单独加载这篇论文的附件，请稍候…
+                </div>
+              )}
               {selectedPaper.files && (selectedPaper.files.word || selectedPaper.files.pdf || selectedPaper.files.excel) && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">📎 附件文件</label>
@@ -1279,6 +1377,11 @@ export default function PaperManagementSystem() {
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+              {selectedPaper.filesLoaded && !selectedPaper.files?.word && !selectedPaper.files?.pdf && !selectedPaper.files?.excel && (
+                <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-500">
+                  这篇论文暂无附件。
                 </div>
               )}
               <div className="flex justify-end pt-4 border-t border-slate-200">
@@ -1707,7 +1810,7 @@ export default function PaperManagementSystem() {
                               <button onClick={() => {
                                 const paper = papers.find(p => p.id === ap.paperId);
                                 if (paper) {
-                                  setSelectedPaper(paper);
+                                  openPaperDetails(paper);
                                   resetForm();
                                 }
                               }} className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors">查看详情</button>
