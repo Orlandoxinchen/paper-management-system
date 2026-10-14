@@ -76,7 +76,7 @@ export default function PaperManagementSystem() {
     titleCN: '', titleEN: '', status: 'preparing', firstAuthor: '', correspondingAuthor: '', 
     secondAuthor: '', journal: '', submissionDate: '', statusDate: '', notes: '', serialNumber: 0,
     submissionLink: '', submissionEmail: '', submissionPassword: '', contactEmail: '', contactPassword: '',
-    files: { word: null, pdf: null, excel: null }
+    files: { word: null, questionnaireWord: null, pdf: null, excel: null }
   });
 
   const [authorForm, setAuthorForm] = useState({
@@ -200,7 +200,7 @@ export default function PaperManagementSystem() {
       const { data } = await runSupabaseQuery(
         signal => supabase
           .from('papers')
-          .select('file_word,file_pdf,file_excel')
+          .select('file_word,file_questionnaire_word,file_pdf,file_excel')
           .eq('id', paper.id)
           .single()
           .abortSignal(signal),
@@ -210,6 +210,7 @@ export default function PaperManagementSystem() {
         ...paper,
         files: {
           word: data?.file_word || null,
+          questionnaireWord: data?.file_questionnaire_word || null,
           pdf: data?.file_pdf || null,
           excel: data?.file_excel || null
         },
@@ -423,7 +424,7 @@ export default function PaperManagementSystem() {
   const openTodoCount = todos.filter(todo => !todo.handled).length;
 
   const resetForm = () => {
-    setPaperForm({ titleCN: '', titleEN: '', status: 'preparing', firstAuthor: '', correspondingAuthor: '', secondAuthor: '', journal: '', submissionDate: '', statusDate: '', notes: '', serialNumber: 0, submissionLink: '', submissionEmail: '', submissionPassword: '', contactEmail: '', contactPassword: '', files: { word: null, pdf: null, excel: null } });
+    setPaperForm({ titleCN: '', titleEN: '', status: 'preparing', firstAuthor: '', correspondingAuthor: '', secondAuthor: '', journal: '', submissionDate: '', statusDate: '', notes: '', serialNumber: 0, submissionLink: '', submissionEmail: '', submissionPassword: '', contactEmail: '', contactPassword: '', files: { word: null, questionnaireWord: null, pdf: null, excel: null } });
     setAuthorForm({ name: '', wechat: '', phone: '', email: '', contractDate: '', cooperationAmounts: [], affiliations: [''], researchField: [], authorPositions: {} });
     setCustomTodoForm({ name: '', note: '' });
     setEditItem(null);
@@ -460,6 +461,7 @@ export default function PaperManagementSystem() {
     if (!file) return;
     const validTypes = {
       word: ['.doc', '.docx', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      questionnaireWord: ['.doc', '.docx', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
       pdf: ['.py', '.pdf', 'text/x-python', 'text/plain', 'application/x-python-code', 'application/pdf'],
       excel: ['.xls', '.xlsx', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
     };
@@ -468,7 +470,14 @@ export default function PaperManagementSystem() {
       type.startsWith('.') ? fileExtension === type : file.type === type
     );
     if (!isValidType) {
-      notify(`请上传正确的${fileType === 'word' ? 'Word' : fileType === 'pdf' ? 'Py或PDF' : 'item-level raw data Excel'}文件`, 'error');
+      const fileTypeLabel = fileType === 'word'
+        ? 'Word'
+        : fileType === 'questionnaireWord'
+          ? '问卷 Word'
+          : fileType === 'pdf'
+            ? 'Py或PDF'
+            : 'item-level raw data Excel';
+      notify(`请上传正确的${fileTypeLabel}文件`, 'error');
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -549,6 +558,7 @@ export default function PaperManagementSystem() {
         submission_password: paperForm.submissionPassword, contact_email: paperForm.contactEmail,
         contact_password: paperForm.contactPassword, status_date: paperForm.statusDate || null,
         notes: paperForm.notes, file_word: paperForm.files.word,
+        file_questionnaire_word: paperForm.files.questionnaireWord,
         file_pdf: paperForm.files.pdf, file_excel: paperForm.files.excel
       };
       if (editItem) {
@@ -707,7 +717,9 @@ export default function PaperManagementSystem() {
                 submission_email: paper.submissionEmail || '', submission_password: paper.submissionPassword || '',
                 contact_email: paper.contactEmail || '', contact_password: paper.contactPassword || '',
                 status_date: paper.statusDate || null, notes: paper.notes || '',
-                file_word: paper.files?.word || null, file_pdf: paper.files?.pdf || null,
+                file_word: paper.files?.word || null,
+                file_questionnaire_word: paper.files?.questionnaireWord || null,
+                file_pdf: paper.files?.pdf || null,
                 file_excel: paper.files?.excel || null
               });
               if (!error) importedPapers++;
@@ -1025,9 +1037,10 @@ export default function PaperManagementSystem() {
                       <div>一作：{p.firstAuthor || '-'}</div>
                       {p.secondAuthor && <div>二作：{p.secondAuthor}</div>}
                     </div>
-                    {p.files && (p.files.word || p.files.pdf || p.files.excel) && (
+                    {p.files && (p.files.word || p.files.questionnaireWord || p.files.pdf || p.files.excel) && (
                       <div className="pt-2 border-t border-slate-100 flex gap-1">
                         {p.files.word && <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">📄 Word</span>}
+                        {p.files.questionnaireWord && <span className="px-2 py-1 bg-violet-100 text-violet-700 text-xs rounded">📝 问卷 Word</span>}
                         {p.files.pdf && (
                           <span className={`px-2 py-1 text-xs rounded ${getPdfSlotMeta(p.files.pdf).colorClasses}`}>
                             {getPdfSlotMeta(p.files.pdf).shortLabel}
@@ -1376,10 +1389,10 @@ export default function PaperManagementSystem() {
                   正在单独加载这篇论文的附件，请稍候…
                 </div>
               )}
-              {selectedPaper.files && (selectedPaper.files.word || selectedPaper.files.pdf || selectedPaper.files.excel) && (
+              {selectedPaper.files && (selectedPaper.files.word || selectedPaper.files.questionnaireWord || selectedPaper.files.pdf || selectedPaper.files.excel) && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">📎 附件文件</label>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     {selectedPaper.files.word && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
@@ -1388,6 +1401,16 @@ export default function PaperManagementSystem() {
                         </div>
                         <div className="text-xs text-slate-600 truncate mb-2" title={selectedPaper.files.word.name}>{selectedPaper.files.word.name}</div>
                         <button onClick={() => handleFileDownload(selectedPaper.files.word)} className="w-full px-3 py-2 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors">下载文件</button>
+                      </div>
+                    )}
+                    {selectedPaper.files.questionnaireWord && (
+                      <div className="bg-violet-50 border border-violet-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 bg-violet-100 rounded flex items-center justify-center">📝</div>
+                          <span className="text-sm font-medium text-violet-900">问卷 Word</span>
+                        </div>
+                        <div className="text-xs text-slate-600 truncate mb-2" title={selectedPaper.files.questionnaireWord.name}>{selectedPaper.files.questionnaireWord.name}</div>
+                        <button onClick={() => handleFileDownload(selectedPaper.files.questionnaireWord)} className="w-full px-3 py-2 bg-violet-600 text-white rounded text-xs hover:bg-violet-700 transition-colors">下载文件</button>
                       </div>
                     )}
                     {selectedPaper.files.pdf && (
@@ -1415,7 +1438,7 @@ export default function PaperManagementSystem() {
                   </div>
                 </div>
               )}
-              {selectedPaper.filesLoaded && !selectedPaper.files?.word && !selectedPaper.files?.pdf && !selectedPaper.files?.excel && (
+              {selectedPaper.filesLoaded && !selectedPaper.files?.word && !selectedPaper.files?.questionnaireWord && !selectedPaper.files?.pdf && !selectedPaper.files?.excel && (
                 <div className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-500">
                   这篇论文暂无附件。
                 </div>
@@ -1631,7 +1654,7 @@ export default function PaperManagementSystem() {
                   </div>
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                     <div className="font-medium mb-3 text-slate-900">📎 附件文件</div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
                       <div className="bg-white border border-slate-200 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center text-lg">📄</div>
@@ -1650,6 +1673,27 @@ export default function PaperManagementSystem() {
                           <label className="block">
                             <input type="file" accept=".doc,.docx" onChange={(e) => handleFileUpload(e, 'word')} className="hidden" />
                             <div className="px-3 py-2 bg-blue-50 text-blue-600 rounded text-xs text-center cursor-pointer hover:bg-blue-100 transition-colors border border-blue-200">+ 上传Word</div>
+                          </label>
+                        )}
+                      </div>
+                      <div className="bg-white border border-slate-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 bg-violet-100 rounded flex items-center justify-center text-lg">📝</div>
+                          <span className="text-sm font-medium text-slate-700">问卷 Word</span>
+                        </div>
+                        {paperForm.files?.questionnaireWord ? (
+                          <div className="space-y-2">
+                            <div className="text-xs text-slate-600 truncate" title={paperForm.files.questionnaireWord.name}>{paperForm.files.questionnaireWord.name}</div>
+                            <div className="text-xs text-slate-500">{(paperForm.files.questionnaireWord.size / 1024).toFixed(1)} KB</div>
+                            <div className="flex gap-2">
+                              <button type="button" onClick={() => handleFileDownload(paperForm.files.questionnaireWord)} className="flex-1 px-2 py-1 bg-violet-100 text-violet-700 rounded text-xs hover:bg-violet-200 transition-colors">下载</button>
+                              <button type="button" onClick={() => handleFileDelete('questionnaireWord')} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors">删除</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="block">
+                            <input type="file" accept=".doc,.docx" onChange={(e) => handleFileUpload(e, 'questionnaireWord')} className="hidden" />
+                            <div className="px-3 py-2 bg-violet-50 text-violet-700 rounded text-xs text-center cursor-pointer hover:bg-violet-100 transition-colors border border-violet-200">+ 上传问卷 Word</div>
                           </label>
                         )}
                       </div>
@@ -1700,7 +1744,7 @@ export default function PaperManagementSystem() {
                         )}
                       </div>
                     </div>
-                    <div className="mt-3 text-xs text-slate-500">💡 提示：当前支持上传Word、Py/PDF、item-level raw data（XLSX），单个文件最大10MB；Py 与 PDF 共用同一槽位，历史 PDF 仍可继续下载</div>
+                    <div className="mt-3 text-xs text-slate-500">💡 提示：当前支持上传论文 Word、问卷 Word、Py/PDF、item-level raw data（XLSX），单个文件最大10MB；Py 与 PDF 共用同一槽位，历史 PDF 仍可继续下载</div>
                   </div>
                   <div className="flex gap-3 pt-4 border-t border-slate-200">
                     <button onClick={savePaper} disabled={loading} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm disabled:opacity-50">
