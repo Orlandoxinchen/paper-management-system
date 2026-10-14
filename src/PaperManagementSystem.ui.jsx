@@ -417,6 +417,11 @@ export default function PaperManagementSystem() {
     return result;
   }, [authors, filterAmount, filterDays, searchQuery]);
 
+  const submittedCount = papers.filter(paper => paper.submissionDate).length;
+  const reviewCount = papers.filter(paper => ['submitted', 'under_review', 'revision_pending', 'final_review'].includes(paper.status)).length;
+  const acceptedCount = papers.filter(paper => ['accepted', 'published'].includes(paper.status)).length;
+  const openTodoCount = todos.filter(todo => !todo.handled).length;
+
   const resetForm = () => {
     setPaperForm({ titleCN: '', titleEN: '', status: 'preparing', firstAuthor: '', correspondingAuthor: '', secondAuthor: '', journal: '', submissionDate: '', statusDate: '', notes: '', serialNumber: 0, submissionLink: '', submissionEmail: '', submissionPassword: '', contactEmail: '', contactPassword: '', files: { word: null, pdf: null, excel: null } });
     setAuthorForm({ name: '', wechat: '', phone: '', email: '', contractDate: '', cooperationAmounts: [], affiliations: [''], researchField: [], authorPositions: {} });
@@ -840,7 +845,7 @@ export default function PaperManagementSystem() {
     />;
   }
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="app-shell">
       {loading && (
         <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
           <div className="bg-white rounded-xl p-6 shadow-2xl flex items-center gap-3">
@@ -850,92 +855,121 @@ export default function PaperManagementSystem() {
         </div>
       )}
 
-      <div className="bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+      <header className="app-header">
+        <div className="app-header__inner">
+          <div className="app-brand">
+            <span className="app-brand__mark"><BookOpen size={25} /></span>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">论文投稿管理系统</h1>
-              <p className="text-sm text-slate-500 mt-1">Paper Submission Management System</p>
-              {user && <p className="text-xs text-slate-400 mt-1">👤 {user.email}</p>}
-            </div>
-            <div className="flex gap-3">
-              <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors shadow-sm">
-                <Download size={18} />导出
-              </button>
-              <label className="flex items-center gap-2 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white rounded-lg transition-colors cursor-pointer shadow-sm">
-                <Upload size={18} />导入
-                <input type="file" accept=".json,.csv" onChange={importData} className="hidden" />
-              </label>
-              <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-sm">
-                <X size={18} />退出登录
-              </button>
+              <h1>论文投稿管理系统</h1>
+              <p>Paper Submission Management System</p>
             </div>
           </div>
+          <div className="app-header__actions">
+            {user && <span className="user-chip">{user.email}</span>}
+            <button onClick={exportCSV} className="header-action">
+              <Download size={17} />导出
+            </button>
+            <label className="header-action cursor-pointer">
+              <Upload size={17} />导入
+              <input type="file" accept=".json,.csv" onChange={importData} className="hidden" />
+            </label>
+            <button onClick={handleLogout} className="header-action header-action--danger">
+              <X size={17} />退出
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="flex gap-2 bg-slate-100 rounded-lg p-1">
-              <button onClick={() => setViewMode('papers')} className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'papers' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
-                <FileText size={18} />论文
-              </button>
-              <button onClick={() => setViewMode('authors')} className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'authors' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
-                <Users size={18} />作者
-              </button>
-              <button onClick={() => setViewMode('todos')} className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all relative ${viewMode === 'todos' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
-                <AlertCircle size={18} />待办
-                {todos.filter(t => !t.handled).length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-medium">
-                    {todos.filter(t => !t.handled).length}
-                  </span>
-                )}
-              </button>
-              <button onClick={() => setViewMode('history')} className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${viewMode === 'history' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}>
-                <Clock size={18} />历史
-              </button>
+      <main className="app-main">
+        <section className="overview" aria-label="工作台概览">
+          <article className="overview-card">
+            <div className="overview-card__top">
+              <span className="overview-card__label">全部研究项目</span>
+              <span className="overview-card__icon"><FileText size={16} /></span>
             </div>
+            <p className="overview-card__value">{papers.length}</p>
+            <p className="overview-card__meta">已建档论文总数</p>
+          </article>
+          <article className="overview-card">
+            <div className="overview-card__top">
+              <span className="overview-card__label">已完成投稿</span>
+              <span className="overview-card__icon"><Upload size={16} /></span>
+            </div>
+            <p className="overview-card__value">{submittedCount}</p>
+            <p className="overview-card__meta">已有正式投稿日期</p>
+          </article>
+          <article className="overview-card">
+            <div className="overview-card__top">
+              <span className="overview-card__label">推进中的稿件</span>
+              <span className="overview-card__icon"><Clock size={16} /></span>
+            </div>
+            <p className="overview-card__value">{reviewCount}</p>
+            <p className="overview-card__meta">投稿、审稿及返修阶段</p>
+          </article>
+          <article className="overview-card">
+            <div className="overview-card__top">
+              <span className="overview-card__label">录用与发表</span>
+              <span className="overview-card__icon"><CheckCircle size={16} /></span>
+            </div>
+            <p className="overview-card__value">{acceptedCount}</p>
+            <p className="overview-card__meta">另有 {openTodoCount} 项待办需处理</p>
+          </article>
+        </section>
 
-            <div className="h-8 w-px bg-slate-200"></div>
+        <section className="workspace-panel" aria-label="检索和操作">
+          <div className="workspace-panel__primary">
+            <nav className="view-tabs" aria-label="内容视图">
+              <button onClick={() => setViewMode('papers')} className={`view-tab ${viewMode === 'papers' ? 'is-active' : ''}`}>
+                <FileText size={17} />论文
+              </button>
+              <button onClick={() => setViewMode('authors')} className={`view-tab ${viewMode === 'authors' ? 'is-active' : ''}`}>
+                <Users size={17} />作者
+              </button>
+              <button onClick={() => setViewMode('todos')} className={`view-tab ${viewMode === 'todos' ? 'is-active' : ''}`}>
+                <AlertCircle size={17} />待办
+                {openTodoCount > 0 && <span className="view-tab__badge">{openTodoCount}</span>}
+              </button>
+              <button onClick={() => setViewMode('history')} className={`view-tab ${viewMode === 'history' ? 'is-active' : ''}`}>
+                <Clock size={17} />历史
+              </button>
+            </nav>
 
-            <button onClick={() => setShowLiteratureTool(true)} className="flex items-center gap-2 px-4 py-2 rounded-md transition-all bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-sm">
-              <BookOpen size={18} />文献抓取
+            <button onClick={() => setShowLiteratureTool(true)} className="tool-button">
+              <BookOpen size={17} />文献抓取
             </button>
-
-            <button onClick={() => setShowEmpiricalTool(true)} className="flex items-center gap-2 px-4 py-2 rounded-md transition-all bg-gradient-to-r from-purple-500 to-pink-600 text-white hover:from-purple-600 hover:to-pink-700 shadow-sm">
-              <BarChart3 size={18} />实证生成
+            <button onClick={() => setShowEmpiricalTool(true)} className="tool-button">
+              <BarChart3 size={17} />实证生成
             </button>
+          </div>
 
-            <div className="h-8 w-px bg-slate-200"></div>
-
-            <div className="relative flex-1 min-w-[200px]">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="搜索..." className="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          <div className="workspace-panel__secondary">
+            <div className="workspace-search">
+              <Search size={17} />
+              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="搜索题目、作者、期刊或编号" aria-label="搜索" />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <X size={18} />
+                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" aria-label="清除搜索">
+                  <X size={17} />
                 </button>
               )}
             </div>
 
             {viewMode === 'papers' && (
-              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="workspace-filter" aria-label="按论文状态筛选">
                 <option value="all">所有状态</option>
                 {statusOpts.map(s => <option key={s.v} value={s.v}>{s.icon} {s.l}</option>)}
               </select>
             )}
-            
+
             {viewMode === 'authors' && (
               <>
-                <select value={filterAmount} onChange={e => setFilterAmount(e.target.value)} className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <select value={filterAmount} onChange={e => setFilterAmount(e.target.value)} className="workspace-filter" aria-label="按合作金额筛选">
                   <option value="all">所有金额</option>
                   <option value="no">无合作</option>
                   <option value="under10k">1万以下</option>
                   <option value="10k-20k">1-2万</option>
                   <option value="over20k">2万以上</option>
                 </select>
-                <select value={filterDays} onChange={e => setFilterDays(e.target.value)} className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <select value={filterDays} onChange={e => setFilterDays(e.target.value)} className="workspace-filter" aria-label="按签约时间筛选">
                   <option value="all">所有签约</option>
                   <option value="under30">30天内</option>
                   <option value="30-90">30-90天</option>
@@ -943,31 +977,33 @@ export default function PaperManagementSystem() {
                 </select>
               </>
             )}
-            
-            <button onClick={() => { setModalType(viewMode === 'papers' ? 'paper' : viewMode === 'authors' ? 'author' : 'customTodo'); setShowModal(true); }} className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors ml-auto shadow-sm">
-              <Plus size={18} />
+
+            <button onClick={() => { setModalType(viewMode === 'papers' ? 'paper' : viewMode === 'authors' ? 'author' : 'customTodo'); setShowModal(true); }} className="primary-action">
+              <Plus size={17} />
               {viewMode === 'papers' ? '添加论文' : viewMode === 'authors' ? '添加作者' : '添加事项'}
             </button>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-slate-100 text-sm text-slate-500">
-            {viewMode === 'papers' && `显示 ${filteredPapers.length} / ${papers.length} 篇论文`}
-            {viewMode === 'authors' && `显示 ${filteredAuthors.length} / ${authors.length} 位作者`}
-            {viewMode === 'todos' && `待办事项 ${todos.filter(t => !t.handled).length} 项`}
-            {viewMode === 'history' && `历史记录 ${history.length} 条`}
+          <div className="workspace-panel__secondary">
+            <p className="workspace-count">
+              {viewMode === 'papers' && `显示 ${filteredPapers.length} / ${papers.length} 篇论文`}
+              {viewMode === 'authors' && `显示 ${filteredAuthors.length} / ${authors.length} 位作者`}
+              {viewMode === 'todos' && `待办事项 ${openTodoCount} 项`}
+              {viewMode === 'history' && `历史记录 ${history.length} 条`}
+            </p>
           </div>
-        </div>
+        </section>
 
         {viewMode === 'papers' && (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="paper-grid">
             {filteredPapers.sort((a,b) => (a.serialNumber||0)-(b.serialNumber||0)).map(p => {
               const title = p.titleCN ? (p.titleCN.length > 40 ? p.titleCN.substring(0, 40) + '...' : p.titleCN) : (p.titleEN || '无题');
               const subDays = p.submissionDate ? calcDays(p.submissionDate) : null;
               const statusInfo = statusOpts.find(s => s.v === p.status);
               return (
-                <div key={p.id} onClick={() => openPaperDetails(p)} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group">
+                <div key={p.id} onClick={() => openPaperDetails(p)} className="paper-card bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group">
                   <div className="flex gap-4 mb-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-lg group-hover:scale-105 transition-transform">
+                    <div className="paper-index flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-lg">
                       {p.serialNumber || '?'}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1005,7 +1041,7 @@ export default function PaperManagementSystem() {
               );
             })}
             {filteredPapers.length === 0 && (
-              <div className="col-span-2 bg-white rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
+              <div className="empty-state col-span-2 bg-white rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
                 <FileText size={48} className="mx-auto text-slate-300 mb-3" />
                 <p className="text-slate-500">{papers.length === 0 ? '暂无论文，点击右上角"添加论文"开始' : '无筛选结果'}</p>
               </div>
@@ -1014,12 +1050,12 @@ export default function PaperManagementSystem() {
         )}
 
         {viewMode === 'authors' && (
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="author-grid">
             {filteredAuthors.map(a => {
               const authorPapers = getAuthorPapers(a.name);
               const uniquePositions = [...new Set(authorPapers.map(ap => ap.position))];
               return (
-                <div key={a.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all">
+                <div key={a.id} className="author-card bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
                       <h3 className="text-xl font-bold text-slate-800 mb-2">{a.name}</h3>
@@ -1075,7 +1111,7 @@ export default function PaperManagementSystem() {
               );
             })}
             {filteredAuthors.length === 0 && (
-              <div className="col-span-3 bg-white rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
+              <div className="empty-state col-span-3 bg-white rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
                 <Users size={48} className="mx-auto text-slate-300 mb-3" />
                 <p className="text-slate-500">{authors.length === 0 ? '暂无作者' : '无筛选结果'}</p>
               </div>
@@ -1086,7 +1122,7 @@ export default function PaperManagementSystem() {
         {viewMode === 'todos' && (
           <div className="space-y-4">
             {todos.filter(t => !t.handled).length === 0 ? (
-              <div className="bg-white rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
+              <div className="empty-state bg-white rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
                 <CheckCircle size={48} className="mx-auto text-emerald-400 mb-3" />
                 <p className="text-lg font-medium text-slate-700">🎉 暂无待办事项</p>
                 <p className="text-sm text-slate-500 mt-1">所有任务都已完成</p>
@@ -1195,7 +1231,7 @@ export default function PaperManagementSystem() {
             )}
           </div>
         )}
-      </div>
+      </main>
       {selectedPaper && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-auto flex items-center justify-center p-4" onClick={() => setSelectedPaper(null)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8" onClick={e => e.stopPropagation()}>

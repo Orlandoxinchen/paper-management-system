@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import { Mail, Lock, LogIn, AlertCircle, BookOpen, Check, ShieldCheck } from 'lucide-react';
 
 function getConfiguredAccounts() {
   const accountsJson = import.meta.env.VITE_LOGIN_ACCOUNTS;
@@ -65,81 +65,77 @@ export default function Login({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        {/* Logo/Title */}
-        <div className="text-center mb-8">
-          <div className="inline-block p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg mb-4">
-            <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
+    <main className="login-shell">
+      <section className="login-brand" aria-label="系统介绍">
+        <div className="login-brand__inner">
+          <div className="login-brand__mark"><BookOpen size={28} /></div>
+          <p className="login-brand__edition">Editorial Operations</p>
+          <h1>让每一篇研究<br />都有清晰的进程。</h1>
+          <p className="login-brand__lead">
+            从作者协作、投稿状态到研究材料，集中在一套有秩序的编辑工作台中。
+          </p>
+          <div className="login-brand__features">
+            <div><Check size={17} /><span>投稿与审稿进度统一追踪</span></div>
+            <div><Check size={17} /><span>作者、期刊和附件集中管理</span></div>
+            <div><Check size={17} /><span>待办与操作记录完整留痕</span></div>
           </div>
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">论文投稿管理系统</h1>
-          <p className="text-slate-600">Paper Submission Management System</p>
         </div>
+        <p className="login-brand__footer">Paper Submission Management System</p>
+      </section>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">
-            <LogIn size={24} className="inline mr-2" />
-            登录系统
-          </h2>
-
-          <form onSubmit={handleLogin} className="space-y-4">
+      <section className="login-panel">
+        <div className="login-card">
+          <div className="login-card__heading">
+            <span className="login-card__icon"><ShieldCheck size={22} /></span>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                <Mail size={16} className="inline mr-2" />
-                邮箱账号
-              </label>
+              <p>管理后台</p>
+              <h2>登录编辑工作台</h2>
+            </div>
+          </div>
+
+          <form onSubmit={handleLogin} className="login-form">
+            <label>
+              <span><Mail size={16} />邮箱账号</span>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="your@email.com"
+                placeholder="name@example.com"
+                autoComplete="username"
                 required
               />
-            </div>
+            </label>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                <Lock size={16} className="inline mr-2" />
-                密码
-              </label>
+            <label>
+              <span><Lock size={16} />密码</span>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="••••••••"
+                placeholder="请输入登录密码"
+                autoComplete="current-password"
                 required
               />
-            </div>
+            </label>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
-                <AlertCircle size={18} className="text-red-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="login-error" role="alert">
+                <AlertCircle size={18} />
+                <p>{error}</p>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={!loginConfigured}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg font-medium"
-            >
-              <LogIn size={20} />
-              <span>登录</span>
+            <button type="submit" disabled={!loginConfigured} className="login-submit">
+              <span>进入工作台</span>
+              <LogIn size={19} />
             </button>
           </form>
 
-          <div className="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
-            <p className="text-xs text-slate-600 text-center">
-              🔒 请使用管理员提供的账号密码登录
-            </p>
-          </div>
+          <p className="login-card__note">
+            仅限获授权的编辑与研究管理人员访问
+          </p>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
